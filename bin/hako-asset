@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source bin/env.bash
+
+${ASSET_BIN_PATH} $*

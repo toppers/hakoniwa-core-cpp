@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source bin/env.bash
+
+${MASTER_BIN_PATH} $*

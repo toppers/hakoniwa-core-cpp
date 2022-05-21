@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source bin/env.bash
+
+${CMD_BIN_PATH} stop
