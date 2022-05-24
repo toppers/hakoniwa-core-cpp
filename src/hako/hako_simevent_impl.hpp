@@ -22,6 +22,10 @@ namespace hako {
         bool stop();
         bool reset();
 
+        /*
+         * infos
+         */
+        bool assets(std::vector<std::shared_ptr<std::string>> & asset_list);
 
         /*
          * event monitor

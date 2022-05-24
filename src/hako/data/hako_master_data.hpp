@@ -258,6 +258,19 @@ namespace hako::data {
             }
             this->unlock();
         }
+        void get_asset_names(std::vector<std::shared_ptr<std::string>> &asset_lists)
+        {
+            this->lock();
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                HakoAssetEntryType &entry = this->master_datap_->assets[i];
+                if (entry.type == hako::data::HakoAssetType::HakoAsset_Unknown) {
+                    continue;
+                }
+                std::shared_ptr<std::string> asset_name = hako::utils::hako_fixed2string(entry.name);
+                asset_lists.push_back(asset_name);
+            }
+            this->unlock();
+        }
 
     private:
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;

@@ -1,6 +1,7 @@
 #ifndef _HAKO_TYPES_HPP_
 #define _HAKO_TYPES_HPP_
 
+#include <vector>
 #include <cstdint>
 #include <memory>
 #include <sys/types.h>

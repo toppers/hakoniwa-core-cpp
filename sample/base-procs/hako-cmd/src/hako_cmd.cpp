@@ -55,6 +55,13 @@ int main(int argc, const char* argv[])
     else if (cmd == "status") {
         printf("status=%s\n", hako_status[hako_sim_ctrl->state()].c_str());
     }
+    else if (cmd == "ls") {
+        std::vector<std::shared_ptr<std::string>> asset_list;
+        hako_sim_ctrl->assets(asset_list);
+        for(std::shared_ptr<std::string> name :asset_list) {
+            std::cout << *name << std::endl;
+        }
+    }
     else {
         printf("error\n");
     }

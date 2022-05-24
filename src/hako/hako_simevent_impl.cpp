@@ -56,6 +56,11 @@ bool hako::HakoSimulationEventController::reset()
     }
     return ret;
 }
+bool hako::HakoSimulationEventController::assets(std::vector<std::shared_ptr<std::string>> & asset_list) 
+{
+    this->master_data_->get_asset_names(asset_list);
+    return true;
+}
 
 void hako::HakoSimulationEventController::do_event_handling()
 {

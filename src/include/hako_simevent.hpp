@@ -16,6 +16,7 @@ namespace hako {
         virtual bool start() = 0;
         virtual bool stop() = 0;
         virtual bool reset() = 0;
+        virtual bool assets(std::vector<std::shared_ptr<std::string>> & asset_list) = 0;
 
     };
 }
