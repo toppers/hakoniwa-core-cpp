@@ -15,7 +15,6 @@ void hako::core::rpc::HakoInternalRpc::start()
     }
     else {
         this->proxy_thread_ = std::make_shared<std::thread>(&hako::core::rpc::HakoInternalRpc::proxy_thread, this);
-        this->proxy_thread_->detach();
     }
 }
 
