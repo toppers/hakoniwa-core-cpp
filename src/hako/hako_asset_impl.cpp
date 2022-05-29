@@ -35,19 +35,19 @@ bool hako::HakoAssetControllerImpl::asset_unregister(const std::string & name)
 }
 void hako::HakoAssetControllerImpl::notify_simtime(const std::string & name, HakoTimeType simtime)
 {
-    this->master_data_->lock();
+    //this->master_data_->lock();
     auto* asset = this->master_data_->get_asset_nolock(name);
     if (asset != nullptr) {
         auto* asset_event = this->master_data_->get_asset_event_nolock(asset->id);
         asset_event->ctime = simtime;
         asset_event->update_time = hako_get_clock();
     }
-    this->master_data_->unlock();
+    //this->master_data_->unlock();
     return;
 }
 HakoTimeType hako::HakoAssetControllerImpl::get_worldtime()
 {
-    hako::data::HakoTimeSetType timeset = this->master_data_->get_time();
+    hako::data::HakoTimeSetType timeset = this->master_data_->ref_time_nolock();
     return timeset.current;
 }
 

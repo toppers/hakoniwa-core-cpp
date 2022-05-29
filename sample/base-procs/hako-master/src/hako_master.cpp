@@ -22,8 +22,8 @@ int main(int argc, const char* argv[])
     signal(SIGINT, hako_master_signal_handler);
     signal(SIGTERM, hako_master_signal_handler);
 
-    HakoTimeType max_delay_usec = strtol(argv[1], NULL, 10) * 1000;
-    HakoTimeType delta_usec = strtol(argv[2], NULL, 10) * 1000;
+    HakoTimeType delta_usec = strtol(argv[1], NULL, 10) * 1000;
+    HakoTimeType max_delay_usec = strtol(argv[2], NULL, 10) * 1000;
 
     hako::init();
     hako::logger::init("master");
