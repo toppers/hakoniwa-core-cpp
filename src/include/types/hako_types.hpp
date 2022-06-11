@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/ipc.h>
 #include <errno.h>
 #include "config/hako_config.hpp"
