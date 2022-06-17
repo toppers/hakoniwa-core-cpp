@@ -122,7 +122,7 @@ namespace hako::data {
         /*
          * Assets APIs
          */        
-        HakoAssetIdType alloc_asset(const std::string &name, HakoAssetType type, AssetCallbackType &callback)
+        HakoAssetIdType alloc_asset(const std::string &name, HakoAssetType type, AssetCallbackType *callback)
         {
             hako::core::context::HakoContext context;
 
@@ -148,7 +148,14 @@ namespace hako::data {
                         else {
                             this->master_datap_->assets_ev[i].semid = -1;
                         }
-                        this->master_datap_->assets[i].callback = callback;
+                        if (callback != nullptr) {
+                            this->master_datap_->assets[i].callback = *callback;
+                        }
+                        else {
+                            this->master_datap_->assets[i].callback.reset = nullptr;
+                            this->master_datap_->assets[i].callback.start = nullptr;
+                            this->master_datap_->assets[i].callback.stop = nullptr;
+                        }
                         this->master_datap_->assets_ev[i].pid = context.get_pid();
                         this->master_datap_->assets_ev[i].ctime = 0ULL;
                         this->update_asset_time(i);

@@ -20,6 +20,8 @@ namespace hako {
             this->rpc_ = nullptr;
         }
         virtual bool asset_register(const std::string & name, AssetCallbackType &callbacks);
+        virtual bool asset_register_polling(const std::string & name);
+        virtual HakoSimulationAssetEventType asset_get_event(const std::string & name);
         virtual bool asset_unregister(const std::string & name);
         virtual void notify_simtime(const std::string & name, HakoTimeType simtime);
         virtual HakoTimeType get_worldtime();

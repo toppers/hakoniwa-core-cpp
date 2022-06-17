@@ -56,11 +56,14 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
     auto* asset_ev = master_data->get_asset_event_nolock(asset_id);
     asset_ev->event = event_id;
     asset_ev->event_feedback = false;
+    auto *asset = master_data->get_asset(asset_id);
+    if (asset->callback.start == nullptr) { //polling
+        return;
+    }
     if (!context.is_same(asset_ev->pid)) {
         hako::utils::sem::asset_up(master_data->get_semid(), asset_id);
         return;
     }
-    auto* asset = master_data->get_asset(asset_id);
     switch (event_id) {
         case hako::data::HakoAssetEvent_Start:
             asset->callback.start();

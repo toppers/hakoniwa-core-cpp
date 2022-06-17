@@ -40,5 +40,14 @@ typedef enum
     HakoSim_Count
 } HakoSimulationStateType;
 
+typedef enum
+{
+    HakoSimAssetEvent_None = 0,
+    HakoSimAssetEvent_Start,
+    HakoSimAssetEvent_Stop,
+    HakoSimAssetEvent_Reset,
+    HakoSimAssetEvent_Error,
+    HakoSimAssetEvent_Count
+} HakoSimulationAssetEventType;
 
 #endif /* _HAKO_TYPES_HPP_ */

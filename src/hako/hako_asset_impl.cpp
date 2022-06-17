@@ -5,7 +5,7 @@
 bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, AssetCallbackType &callbacks)
 {
     hako::core::context::HakoContext context;
-    auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, callbacks);
+    auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, &callbacks);
     if (id < 0) {
         hako::utils::logger::get("core")->error("can not registered: asset[{0}]", name);
         return false;
@@ -20,6 +20,32 @@ bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, Ass
     this->rpc_->start();
     return true;
 }
+bool hako::HakoAssetControllerImpl::asset_register_polling(const std::string & name)
+{
+    hako::core::context::HakoContext context;
+    auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, nullptr);
+    if (id < 0) {
+        hako::utils::logger::get("core")->error("can not registered: polling asset[{0}]", name);
+        return false;
+    }
+    else {
+        hako::utils::logger::get("core")->info("Registered: polling asset[{0}]", name);
+    }
+    return true;
+}
+HakoSimulationAssetEventType hako::HakoAssetControllerImpl::asset_get_event(const std::string & name)
+{
+    auto* asset = this->master_data_->get_asset_nolock(name);
+    if (asset == nullptr) {
+        return HakoSimulationAssetEventType::HakoSimAssetEvent_Error;
+    }
+    auto* asset_event = this->master_data_->get_asset_event_nolock(asset->id);
+    if (asset_event == nullptr) {
+        return HakoSimulationAssetEventType::HakoSimAssetEvent_Error;
+    }
+    auto ret = asset_event->event;
+    return (HakoSimulationAssetEventType)ret;
+}
 
 bool hako::HakoAssetControllerImpl::asset_unregister(const std::string & name)
 {
@@ -30,7 +56,9 @@ bool hako::HakoAssetControllerImpl::asset_unregister(const std::string & name)
     else {
         hako::utils::logger::get("core")->error("can not unregistered: asset[{0}]", name);
     }
-    this->rpc_->stop();
+    if (this->rpc_ != nullptr) {
+        this->rpc_->stop();
+    }
     return ret;
 }
 void hako::HakoAssetControllerImpl::notify_simtime(const std::string & name, HakoTimeType simtime)
@@ -69,10 +97,13 @@ bool hako::HakoAssetControllerImpl::feedback(const std::string& asset_name, bool
                 entry_ev->event_feedback = false;
                 ret = false;
             }
+            entry_ev->event = hako::data::HakoAssetEventType::HakoAssetEvent_None;
         }
         else {
             ret = false;
         }
+        hako::utils::logger::get("core")->info("feedback isOk={0} ret={1} state={2} exp_state={3}", isOk, ret, state, exp_state);
+        hako::utils::logger::get("core")->flush();
     }
     this->master_data_->unlock();
     return ret;

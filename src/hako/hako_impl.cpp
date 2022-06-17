@@ -77,11 +77,12 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
         if (master_data_ptr->load() == false) {
+            hako::utils::logger::get("core")->error("get_simevent_controller() can not load master data");
+            hako::utils::logger::get("core")->flush();            
             return nullptr;
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
-
     return simevent_ptr;
 }
 
