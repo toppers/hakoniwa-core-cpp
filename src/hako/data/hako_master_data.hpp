@@ -19,6 +19,11 @@ namespace hako::data {
         uint32_t                asset_num;
         HakoAssetEntryType      assets[HAKO_DATA_MAX_ASSET_NUM];
         HakoAssetEntryEventType assets_ev[HAKO_DATA_MAX_ASSET_NUM];
+
+        /*
+         * PDU MetaData
+         */
+        HakoPduMetaDataType     pdu_meta_data;
     } HakoMasterDataType;
 
     class HakoMasterData {
