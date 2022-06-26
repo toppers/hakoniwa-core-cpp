@@ -7,6 +7,7 @@
 
 #define HAKO_SHARED_MEMORY_BASE_ID   0x00FF
 #define HAKO_SHARED_MEMORY_ID_0     (0x0 + HAKO_SHARED_MEMORY_BASE_ID)
+#define HAKO_SHARED_MEMORY_ID_1     (0x1 + HAKO_SHARED_MEMORY_BASE_ID)
 
 #define HAKO_LOGGER_DIRPATH             "./log/"
 #define HAKO_LOGGER_FILE_PREFIX         "hako-"
