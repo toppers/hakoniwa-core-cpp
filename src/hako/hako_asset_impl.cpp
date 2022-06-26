@@ -121,3 +121,65 @@ bool hako::HakoAssetControllerImpl::reset_feedback(const std::string& asset_name
 {
     return this->feedback(asset_name, isOk, HakoSim_Resetting);
 }
+bool hako::HakoAssetControllerImpl::create_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t pdu_size)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return false;
+    }
+    return this->master_data_->get_pdu_data()->create_channel(channel_id, pdu_size);
+}
+
+bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return false;
+    }
+    return this->master_data_->get_pdu_data()->write_pdu(channel_id, pdu_data, len);
+}
+
+bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return false;
+    }
+    return this->master_data_->get_pdu_data()->read_pdu(channel_id, pdu_data, len);
+}
+
+void hako::HakoAssetControllerImpl::notify_read_pdu_done(const std::string& asset_name)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return;
+    }
+    this->master_data_->get_pdu_data()->notify_read_pdu_done(asset->id);
+}
+
+void hako::HakoAssetControllerImpl::notify_write_pdu_done(const std::string& asset_name)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return;
+    }
+    this->master_data_->get_pdu_data()->notify_write_pdu_done(asset->id);
+    return;
+}
+
+bool hako::HakoAssetControllerImpl::is_pdu_sync_mode(const std::string& asset_name)
+{
+    auto* asset = this->master_data_->get_asset_nolock(asset_name);
+    if (asset == nullptr) {
+        return false;
+    }
+    return this->master_data_->get_pdu_data()->is_pdu_sync_mode(asset->id);
+}
+bool hako::HakoAssetControllerImpl::is_simulation_mode()
+{
+    return this->master_data_->get_pdu_data()->is_simulation_mode();
+}
+bool hako::HakoAssetControllerImpl::is_pdu_created()
+{
+    return this->master_data_->get_pdu_data()->is_pdu_created();
+}

@@ -45,9 +45,8 @@ namespace hako::data {
     } HakoAssetEntryEventType;
 
     typedef struct {
-        HakoPduChannelIdType    id;
         int32_t                 offset;
-        int32_t                 size;
+        size_t                  size;
     } HakoPduChannelType;
 
     typedef struct {
@@ -61,10 +60,11 @@ namespace hako::data {
     } HakoTimeModeType;
     typedef struct {
         HakoTimeModeType    mode;
+        HakoAssetIdType     asset_num;
+        HakoAssetIdType     pdu_sync_asset_id;
         bool                asset_pdu_check_status[HAKO_DATA_MAX_ASSET_NUM];
         int32_t             channel_num;
         HakoPduChannelType  channel[HAKO_PDU_CHANNEL_MAX];
-        char*               pdu;
     } HakoPduMetaDataType;
 }
 

@@ -15,6 +15,6 @@
 #define HAKO_LOGGER_MAXSIZE     (1024 * 1024 * 5)
 #define HAKO_LOGGER_ROTNUM      3
 
-#define HAKO_PDU_CHANNEL_MAX        256U
+#define HAKO_PDU_CHANNEL_MAX        256
 
 #endif /* _HAKO_CONFIG_HPP_ */

@@ -8,6 +8,7 @@
 #include "utils/hako_clock.hpp"
 #include "utils/hako_sem.hpp"
 #include "core/context/hako_context.hpp"
+#include "data/hako_pdu_data.hpp"
 #include <string.h>
 
 namespace hako::data {
@@ -47,6 +48,7 @@ namespace hako::data {
                 this->master_datap_->master_pid = context.get_pid();
             }
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
         }
         pid_t get_master_pid()
         {
@@ -69,12 +71,14 @@ namespace hako::data {
             }
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
             return true;
         }
 
         void destroy()
         {
             if (this->shmp_ != nullptr) {
+                this->pdu_datap_->destroy();
                 this->shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_0);
                 this->master_datap_ = nullptr;
                 this->shmp_ = nullptr;
@@ -283,10 +287,23 @@ namespace hako::data {
             }
             this->unlock();
         }
-
+        std::shared_ptr<HakoPduData> get_pdu_data()
+        {
+            return this->pdu_datap_;
+        }
+        void destroy_pdu_data()
+        {
+            this->pdu_datap_->reset();
+            //this->pdu_datap_->destroy();
+        }
+        void create_pdu_data()
+        {
+            this->pdu_datap_->create(this->master_datap_->asset_num);
+        }
     private:
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
         HakoMasterDataType *master_datap_ = nullptr;
+        std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
     };
 }
 

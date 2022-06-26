@@ -33,6 +33,18 @@ namespace hako {
         bool stop_feedback(const std::string& asset_name, bool isOk);
         bool reset_feedback(const std::string& asset_name, bool isOk);
 
+        /*
+         * PDU APIs
+         */
+        bool create_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t pdu_size);
+        bool write_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
+        bool read_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
+        void notify_read_pdu_done(const std::string& asset_name);
+        void notify_write_pdu_done(const std::string& asset_name);
+        bool is_pdu_sync_mode(const std::string& asset_name);
+        bool is_simulation_mode();
+        bool is_pdu_created();
+
     private:
         HakoAssetControllerImpl() {}
         bool feedback(const std::string& asset_name, bool isOk, HakoSimulationStateType exp_state);
