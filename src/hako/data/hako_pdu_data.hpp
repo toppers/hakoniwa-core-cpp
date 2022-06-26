@@ -87,10 +87,10 @@ namespace hako::data {
                 next_id = 0;
             }
             this->pdu_meta_data_->asset_pdu_check_status[asset_id] = false;
+            this->pdu_meta_data_->pdu_sync_asset_id = next_id;
             if (next_id == 0) {
                 this->pdu_meta_data_->mode = HakoTimeMode_Master;
             }
-            this->pdu_meta_data_->pdu_sync_asset_id = next_id;
             return;
         }
         bool is_pdu_sync_mode(HakoAssetIdType asset_id)
