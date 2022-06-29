@@ -130,6 +130,11 @@ bool hako::HakoAssetControllerImpl::create_pdu_channel(const std::string& asset_
     return this->master_data_->get_pdu_data()->create_channel(channel_id, pdu_size);
 }
 
+bool hako::HakoAssetControllerImpl::is_pdu_dirty(HakoPduChannelIdType channel_id)
+{
+    return this->master_data_->get_pdu_data()->is_pdu_dirty(channel_id);
+}
+
 bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);

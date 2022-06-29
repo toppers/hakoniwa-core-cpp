@@ -33,6 +33,10 @@ namespace hako::data {
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
             return ret;
         }
+        bool is_pdu_dirty(HakoPduChannelIdType channel_id)
+        {
+            return this->pdu_meta_data_->is_dirty[channel_id];
+        }
         bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
@@ -49,6 +53,7 @@ namespace hako::data {
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], pdu_data, len);
+            this->pdu_meta_data_->is_dirty[channel_id] = true;
             return true;
         }
         bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
@@ -120,6 +125,9 @@ namespace hako::data {
                     return;
                 }
             }
+            for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
+                this->pdu_meta_data_->is_dirty[i] = false;
+            }
             this->pdu_meta_data_->mode = HakoTimeMode_Asset;
         }
         /*
@@ -165,6 +173,7 @@ namespace hako::data {
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
                     this->pdu_meta_data_->channel[i].offset = 0;
                     this->pdu_meta_data_->channel[i].size = 0;
+                    this->pdu_meta_data_->is_dirty[i] = false;
                 }
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);
