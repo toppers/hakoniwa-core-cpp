@@ -58,6 +58,7 @@ int main(int argc, const char* argv[])
         std::cout << "ERROR: Not found hako-master on this PC" << std::endl;
         return 1;
     }
+    hako_asset->create_pdu_channel(0, 100);
     AssetCallbackType callback;
     callback.reset = reset_callback;
     callback.start = start_callback;
@@ -67,7 +68,6 @@ int main(int argc, const char* argv[])
         std::cout << "ERROR: Can not register asset" << std::endl;
         return 1;
     }
-    hako_asset->create_pdu_channel(asset_name_str, 0, 100);
     while (hako_asset_is_end == false) {
         if (hako_asset->is_pdu_created() == false) {
             usleep(1000 * 1000);

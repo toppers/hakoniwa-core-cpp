@@ -121,12 +121,8 @@ bool hako::HakoAssetControllerImpl::reset_feedback(const std::string& asset_name
 {
     return this->feedback(asset_name, isOk, HakoSim_Resetting);
 }
-bool hako::HakoAssetControllerImpl::create_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t pdu_size)
+bool hako::HakoAssetControllerImpl::create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_size)
 {
-    auto* asset = this->master_data_->get_asset_nolock(asset_name);
-    if (asset == nullptr) {
-        return false;
-    }
     return this->master_data_->get_pdu_data()->create_channel(channel_id, pdu_size);
 }
 
