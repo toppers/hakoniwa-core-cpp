@@ -37,6 +37,26 @@ namespace hako::data {
         {
             return this->pdu_meta_data_->is_dirty[channel_id];
         }
+
+        bool is_pdu_wbusy(HakoPduChannelIdType channel_id)
+        {
+            return this->pdu_meta_data_->is_wbusy[channel_id];
+        }
+        bool is_pdu_rbusy(HakoPduChannelIdType channel_id)
+        {
+            return this->pdu_meta_data_->is_rbusy[channel_id];
+        }
+        void set_pdu_wbusy_status(HakoPduChannelIdType channel_id, bool busy_status)
+        {
+            this->pdu_meta_data_->is_wbusy[channel_id] = busy_status;
+        }
+        void set_pdu_rbusy_status(HakoPduChannelIdType channel_id, bool busy_status)
+        {
+            this->pdu_meta_data_->is_rbusy[channel_id] = busy_status;
+        }
+        /*
+         * writers: only one!
+         */
         bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
@@ -51,11 +71,21 @@ namespace hako::data {
             else if (this->pdu_ == nullptr) {
                 this->load();
             }
+
+            this->set_pdu_wbusy_status(channel_id, true);
+            while (this->is_pdu_rbusy(channel_id)) {
+                usleep(1000); /* 1msec sleep */
+            }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], pdu_data, len);
             this->pdu_meta_data_->is_dirty[channel_id] = true;
+            this->set_pdu_wbusy_status(channel_id, false);
             return true;
         }
+
+        /*
+         * readers: only one!
+         */
         bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
@@ -70,8 +100,20 @@ namespace hako::data {
             else if (this->pdu_ == nullptr) {
                 this->load();
             }
+            //READER wait until WRITER has done with rbusy flag=false 
+            //in order to avoid deadlock situation for waiting each other...
+            while (true) {
+                this->set_pdu_rbusy_status(channel_id, true);
+                if (this->is_pdu_wbusy(channel_id)) {
+                    this->set_pdu_rbusy_status(channel_id, false);
+                    usleep(1000); /* 1msec sleep */
+                    continue;
+                }
+                break;
+            }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
+            this->set_pdu_rbusy_status(channel_id, false);
             return true;
         }
         void notify_read_pdu_done(HakoAssetIdType asset_id)
@@ -174,6 +216,8 @@ namespace hako::data {
                     this->pdu_meta_data_->channel[i].offset = 0;
                     this->pdu_meta_data_->channel[i].size = 0;
                     this->pdu_meta_data_->is_dirty[i] = false;
+                    this->pdu_meta_data_->is_rbusy[i] = false;
+                    this->pdu_meta_data_->is_wbusy[i] = false;
                 }
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);

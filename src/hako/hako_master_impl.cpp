@@ -40,7 +40,12 @@ bool hako::HakoMasterControllerImpl::execute()
         auto& timeset = this->master_data_->ref_time_nolock();
         timeset.current = world_time;
         //this->master_data_->unlock();
-        this->master_data_->get_pdu_data()->try_pdu_mode_state_change();
+
+        /*
+         * comment out try_pdu_mode_state_change() call because of process context switch overhead is too big!!!
+         * instead of this approach, pdu atomicity is guaranteed for try write/read using busy flag.
+         */
+        //this->master_data_->get_pdu_data()->try_pdu_mode_state_change();
         return true;
     }
     else {

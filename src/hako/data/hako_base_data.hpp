@@ -65,6 +65,8 @@ namespace hako::data {
         bool                asset_pdu_check_status[HAKO_DATA_MAX_ASSET_NUM];
         int32_t             channel_num;
         bool                is_dirty[HAKO_PDU_CHANNEL_MAX];
+        bool                is_rbusy[HAKO_PDU_CHANNEL_MAX];
+        bool                is_wbusy[HAKO_PDU_CHANNEL_MAX];
         HakoPduChannelType  channel[HAKO_PDU_CHANNEL_MAX];
     } HakoPduMetaDataType;
 }

@@ -83,6 +83,7 @@ int main(int argc, const char* argv[])
             //TODO read pdu
             hako_asset->notify_read_pdu_done(asset_name_str);
             printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
+            //TODO write pdu
         }
         else if (hako_asset->is_pdu_sync_mode(asset_name_str)) {
             //TODO write pdu
