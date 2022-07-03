@@ -15,36 +15,18 @@ int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
         return -1;
     }
     void *shared_memory = shmat(shmid, 0, 0);
+    if (shared_memory == ((void*)-1)) {
+        printf("ERROR: shmat() id=%d size=%d error=%d\n", key, size, errno);
+        return -1;
+    }
 
-#if 1
     int32_t sem_id = hako::utils::sem::create(key);
     if (sem_id < 0) {
         (void)shmdt(shared_memory);
         (void)shmctl (shmid, IPC_RMID, 0);
         return -1;
     }
-#else
-    int32_t sem_id = semget(key, 1, 0666 | IPC_CREAT);
-    if (sem_id < 0) {
-        printf("ERROR: semget() key=%d size=%d error=%d\n", key, size, errno);
-        (void)shmdt(shared_memory);
-        (void)shmctl (shmid, IPC_RMID, 0);
-        return -1;
-    }
 
-    union semun argument;
-    unsigned short values[1];
-    values[0] = 1;
-    argument.array = values;
-    int err = semctl(sem_id, 0, SETALL, argument);
-    if (err < 0) {
-        printf("ERROR: semctl() error = %d segid=%d\n", errno, shmid);
-        (void)shmdt(shared_memory);
-        (void)shmctl (shmid, IPC_RMID, 0);
-        (void)semctl(sem_id, 1, IPC_RMID, NULL);
-        return -1;
-    }
-#endif
     SharedMemoryMetaDataType *metap = static_cast<SharedMemoryMetaDataType*>(shared_memory);
     metap->sem_id = sem_id;
     metap->shm_id = shmid;
@@ -70,7 +52,7 @@ void* hako::utils::HakoSharedMemory::load_memory(int32_t key, int32_t size)
 void* hako::utils::HakoSharedMemory::load_memory_shmid(int32_t key, int32_t shmid)
 {
     void *shared_memory = shmat(shmid, 0, 0);
-    if (shared_memory == nullptr) {
+    if (shared_memory == ((void*)-1)) {
         return nullptr;
     }
     SharedMemoryMetaDataType *metap = static_cast<SharedMemoryMetaDataType*>(shared_memory);

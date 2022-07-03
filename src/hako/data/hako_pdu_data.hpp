@@ -9,10 +9,11 @@
 namespace hako::data {
     class HakoPduData {
     public:
-        HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> shmp)
+        HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> master_shmp)
         {
             this->pdu_meta_data_ = pdu_meta_data;
-            this->shmp_ = shmp;
+            this->master_shmp_ = master_shmp;
+            this->asset_shmp_ = std::make_shared<hako::utils::HakoSharedMemory>();
         }
         virtual ~HakoPduData()
         {
@@ -24,13 +25,13 @@ namespace hako::data {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return false;
             }
-            this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
-            if (this->pdu_meta_data_->channel[channel_id].size != 0) {
+            this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            if (this->pdu_meta_data_->channel[channel_id].size == 0) {
                 this->pdu_meta_data_->channel[channel_id].size = size;
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
-            this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
+            this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             return ret;
         }
         bool is_pdu_dirty(HakoPduChannelIdType channel_id)
@@ -59,10 +60,8 @@ namespace hako::data {
          */
         bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
         {
+            //printf("write_pdu: channel_id=%d len=%zu size=%zu\n", channel_id, len, this->pdu_meta_data_->channel[channel_id].size);
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
-                return false;
-            }
-            else if (this->pdu_ == nullptr) {
                 return false;
             }
             else if (len != this->pdu_meta_data_->channel[channel_id].size) {
@@ -71,13 +70,12 @@ namespace hako::data {
             else if (this->pdu_ == nullptr) {
                 this->load();
             }
-
             this->set_pdu_wbusy_status(channel_id, true);
             while (this->is_pdu_rbusy(channel_id)) {
                 usleep(1000); /* 1msec sleep */
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
-            memcpy(&this->pdu_[off], pdu_data, len);
+            memcpy(&this->pdu_[off], &pdu_data[0], len);
             this->pdu_meta_data_->is_dirty[channel_id] = true;
             this->set_pdu_wbusy_status(channel_id, false);
             return true;
@@ -89,9 +87,6 @@ namespace hako::data {
         bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
-                return false;
-            }
-            else if (this->pdu_ == nullptr) {
                 return false;
             }
             else if (len != this->pdu_meta_data_->channel[channel_id].size) {
@@ -179,12 +174,14 @@ namespace hako::data {
         {
             if (this->pdu_ != nullptr) {
                 this->pdu_meta_data_->asset_num = asset_num;
+                std::cout << "ALREADY CREATED PDU DATA" << std::endl;
                 return;
             }
+            std::cout << "START CREATE PDU DATA" << std::endl;
             ssize_t total_size = this->pdu_total_size();
-            auto shmid = this->shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
+            auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             HAKO_ASSERT(shmid >= 0);
-            void *datap = this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
+            void *datap = this->asset_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
             this->pdu_ = static_cast<char*>(datap);
             {
                 int off = 0;
@@ -195,15 +192,16 @@ namespace hako::data {
                 }
                 memset(this->pdu_, 0, total_size);
             }
-            this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
-            //std::cout << "CREATED" << std::endl;
+            this->asset_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
+            std::cout << "PDU DATA CREATED" << std::endl;
+            printf("CREATED ADDR=%p\n", datap);
         }
         /*
          * for master api
          */
         void reset()
         {
-            (void)this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
+            (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             {
                 this->pdu_meta_data_->asset_num = 0;
                 this->pdu_meta_data_->channel_num = 0;
@@ -222,7 +220,7 @@ namespace hako::data {
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);
             }
-            this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
+            this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
         }
         bool is_pdu_created()
         {
@@ -242,10 +240,12 @@ namespace hako::data {
                 return true;
             }
             ssize_t total_size = this->pdu_total_size();
-            void *datap = this->shmp_->load_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
+            void *datap = this->asset_shmp_->load_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             if (datap == nullptr) {
                 return false;
             }
+            std::cout << "LOADED: PDU DATA" << std::endl;
+            printf("datap=%p\n", datap);
             this->pdu_ = static_cast<char*>(datap);
             return true;
         }
@@ -263,9 +263,9 @@ namespace hako::data {
          */
         void destroy()
         {
-            if (this->shmp_ != nullptr) {
-                this->shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_1);
-                this->shmp_ = nullptr;
+            if (this->asset_shmp_ != nullptr) {
+                this->asset_shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_1);
+                this->asset_shmp_ = nullptr;
                 this->pdu_meta_data_ = nullptr;
                 this->pdu_ = nullptr;
             }
@@ -273,7 +273,15 @@ namespace hako::data {
     private:
         char*               pdu_;
         HakoPduMetaDataType *pdu_meta_data_ = nullptr;
-        std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
+        /**
+         * TODO
+         * なぜかmaster_shmp_にHAKO_SHARED_MEMORY_ID_1を追加しようとすると
+         * load()で変なアドレスが帰ってくる。。おそらくHakoSharedMemoryが
+         * 複数 key 対応できてないような気がする。
+         * 一旦は、実装スピード重視で、HakoSharedMemoryは 1 key のみの制限をつける
+         */
+        std::shared_ptr<hako::utils::HakoSharedMemory>  asset_shmp_;
+        std::shared_ptr<hako::utils::HakoSharedMemory>  master_shmp_;
     };
 }
 
