@@ -77,7 +77,6 @@ int main(int argc, const char* argv[])
             continue;
         }
         if (hako_asset->is_simulation_mode()) {
-            hako_asset->write_pdu(asset_name_str, 1, buf, 100);
             hako_asset->notify_simtime(asset_name_str, hako_asset_time_usec);
             HakoTimeType world_time = hako_asset->get_worldtime();
             if (world_time >= hako_asset_time_usec) {
@@ -88,9 +87,9 @@ int main(int argc, const char* argv[])
             hako_asset->notify_read_pdu_done(asset_name_str);
             printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
             printf("buf:%s pdu:%s\n", buf, tmp);
-            //TODO write pdu
         }
         else if (hako_asset->is_pdu_sync_mode(asset_name_str)) {
+            hako_asset->write_pdu(asset_name_str, 1, buf, 100);
             hako_asset->notify_write_pdu_done(asset_name_str);
         }
 

@@ -69,7 +69,7 @@ namespace hako::data {
             if (datap == nullptr) {
                 return false;
             }
-            printf("master load:addr=%p\n", datap);
+            //printf("master load:addr=%p\n", datap);
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
             this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);

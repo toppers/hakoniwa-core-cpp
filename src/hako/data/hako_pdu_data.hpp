@@ -174,9 +174,12 @@ namespace hako::data {
         {
             if (this->pdu_ != nullptr) {
                 this->pdu_meta_data_->asset_num = asset_num;
+                this->pdu_meta_data_->mode = HakoTimeMode_Asset;
                 std::cout << "ALREADY CREATED PDU DATA" << std::endl;
                 return;
             }
+            this->pdu_meta_data_->mode = HakoTimeMode_Asset;
+
             std::cout << "START CREATE PDU DATA" << std::endl;
             ssize_t total_size = this->pdu_total_size();
             auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
