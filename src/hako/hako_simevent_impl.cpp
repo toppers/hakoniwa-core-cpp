@@ -134,7 +134,9 @@ void hako::HakoSimulationEventController::do_event_handling_timeout_nolock(std::
         auto* asset_ev = this->master_data_->get_asset_event_nolock(id);
         if (asset_ev != nullptr) {
             if (this->master_data_->is_asset_timeout_nolock(id)) {
-                //hako::utils::logger::get()->info("TIMEOUT:{0}", id);
+                HakoSimulationStateType state = this->master_data_->ref_state_nolock();
+                hako::utils::logger::get("core")->error("TIMEOUT:asset_id={0} state={1}", id, state);
+                std::cout << "ERROR: timeout asset_id=" << id << std::endl;
                 error_assets->push_back(id);
             }
         }
