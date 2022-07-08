@@ -11,6 +11,7 @@ void hako::utils::logger::init(const std::string &id)
         logfile_path, 
         HAKO_LOGGER_MAXSIZE, 
         HAKO_LOGGER_ROTNUM);
+    spdlog::flush_every(std::chrono::seconds(1));
     spdlog::get(id)->info("hako logger[{0}] initialized", id);
     return;
 }

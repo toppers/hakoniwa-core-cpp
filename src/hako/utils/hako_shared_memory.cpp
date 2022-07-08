@@ -14,6 +14,7 @@ int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
         printf("ERROR: shmget() id=%d size=%d error=%d\n", key, size, errno);
         return -1;
     }
+    printf("INFO: shmget() key=%d size=%d \n", key, size);
     void *shared_memory = shmat(shmid, 0, 0);
     if (shared_memory == ((void*)-1)) {
         printf("ERROR: shmat() id=%d size=%d error=%d\n", key, size, errno);

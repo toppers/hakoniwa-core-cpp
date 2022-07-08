@@ -28,6 +28,7 @@ namespace hako::data {
             this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             if (this->pdu_meta_data_->channel[channel_id].size == 0) {
                 this->pdu_meta_data_->channel[channel_id].size = size;
+                std::cout << "create_channel: id=" << channel_id << " size=" << size << std::endl;
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
@@ -180,8 +181,8 @@ namespace hako::data {
             }
             this->pdu_meta_data_->mode = HakoTimeMode_Asset;
 
-            std::cout << "START CREATE PDU DATA" << std::endl;
             ssize_t total_size = this->pdu_total_size();
+            std::cout << "START CREATE PDU DATA: total_size= " << total_size << std::endl;
             auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             HAKO_ASSERT(shmid >= 0);
             void *datap = this->asset_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
@@ -204,6 +205,7 @@ namespace hako::data {
          */
         void reset()
         {
+            std::cout << "EVENT: reset" << std::endl;
             (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             {
                 this->pdu_meta_data_->asset_num = 0;
@@ -248,7 +250,7 @@ namespace hako::data {
                 return false;
             }
             std::cout << "LOADED: PDU DATA" << std::endl;
-            printf("datap=%p\n", datap);
+            hako::utils::logger::get("core")->info("LOADED: PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
             return true;
         }

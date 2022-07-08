@@ -135,6 +135,7 @@ bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, Hak
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
+        hako::utils::logger::get("core")->info("write_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
     return this->master_data_->get_pdu_data()->write_pdu(channel_id, pdu_data, len);
@@ -144,6 +145,7 @@ bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, Hako
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
+        hako::utils::logger::get("core")->info("read_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
     return this->master_data_->get_pdu_data()->read_pdu(channel_id, pdu_data, len);
