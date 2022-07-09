@@ -250,7 +250,6 @@ namespace hako::data {
                 return false;
             }
             std::cout << "LOADED: PDU DATA" << std::endl;
-            hako::utils::logger::get("core")->info("LOADED: PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
             return true;
         }
