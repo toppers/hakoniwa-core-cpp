@@ -46,9 +46,11 @@ bool hako::HakoMasterControllerImpl::execute()
          * instead of this approach, pdu atomicity is guaranteed for try write/read using busy flag.
          */
         //this->master_data_->get_pdu_data()->try_pdu_mode_state_change();
+        //hako::utils::logger::get("core")->info("move: world_time={0}", world_time);
         return true;
     }
     else {
+        //hako::utils::logger::get("core")->info("skip: world_time={0}", world_time);
         return false;
     }
 }

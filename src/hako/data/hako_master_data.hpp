@@ -265,7 +265,7 @@ namespace hako::data {
         }
         void get_asset_times(std::vector<HakoTimeType> & asset_times)
         {
-            this->lock();
+            //this->lock();
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                 HakoAssetEntryType &entry = this->master_datap_->assets[i];
                 if (entry.type == hako::data::HakoAssetType::HakoAsset_Unknown) {
@@ -273,7 +273,7 @@ namespace hako::data {
                 }                
                 asset_times.push_back(this->master_datap_->assets_ev[i].ctime);
             }
-            this->unlock();
+            //this->unlock();
         }
         void get_asset_names(std::vector<std::shared_ptr<std::string>> &asset_lists)
         {

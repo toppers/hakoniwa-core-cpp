@@ -68,6 +68,7 @@ void hako::HakoAssetControllerImpl::notify_simtime(const std::string & name, Hak
     if (asset != nullptr) {
         auto* asset_event = this->master_data_->get_asset_event_nolock(asset->id);
         asset_event->ctime = simtime;
+        //hako::utils::logger::get("core")->info("notify_simtime: {0} time={1}", name, simtime);
         asset_event->update_time = hako_get_clock();
     }
     //this->master_data_->unlock();
