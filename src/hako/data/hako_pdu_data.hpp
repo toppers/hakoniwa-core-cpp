@@ -73,7 +73,7 @@ namespace hako::data {
             }
             this->set_pdu_wbusy_status(channel_id, true);
             while (this->is_pdu_rbusy(channel_id)) {
-                usleep(1000); /* 1msec sleep */
+                //usleep(1000); /* 1msec sleep */
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], &pdu_data[0], len);
@@ -102,7 +102,7 @@ namespace hako::data {
                 this->set_pdu_rbusy_status(channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
                     this->set_pdu_rbusy_status(channel_id, false);
-                    usleep(1000); /* 1msec sleep */
+                    //usleep(1000); /* 1msec sleep */
                     continue;
                 }
                 break;
@@ -208,16 +208,16 @@ namespace hako::data {
             std::cout << "EVENT: reset" << std::endl;
             (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             {
-                this->pdu_meta_data_->asset_num = 0;
-                this->pdu_meta_data_->channel_num = 0;
+                //this->pdu_meta_data_->asset_num = 0;
+                //this->pdu_meta_data_->channel_num = 0;
                 this->pdu_meta_data_->pdu_sync_asset_id = 0;
                 this->pdu_meta_data_->mode = HakoTimeMode_Asset;
                 for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                     this->pdu_meta_data_->asset_pdu_check_status[i] = false;
                 }
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
-                    this->pdu_meta_data_->channel[i].offset = 0;
-                    this->pdu_meta_data_->channel[i].size = 0;
+                    //this->pdu_meta_data_->channel[i].offset = 0;
+                    //this->pdu_meta_data_->channel[i].size = 0;
                     this->pdu_meta_data_->is_dirty[i] = false;
                     this->pdu_meta_data_->is_rbusy[i] = false;
                     this->pdu_meta_data_->is_wbusy[i] = false;
