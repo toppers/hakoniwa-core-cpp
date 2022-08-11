@@ -43,6 +43,32 @@ namespace hako::data {
         bool                event_feedback;
         int32_t             semid;       /* for remote asset */
     } HakoAssetEntryEventType;
+
+    typedef struct {
+        int32_t                 offset;
+        size_t                  size;
+    } HakoPduChannelType;
+
+    typedef struct {
+        char    data[8U];
+    } HakoPduChannelDataType;
+
+    typedef enum {
+        HakoTimeMode_Master = 0,
+        HakoTimeMode_Asset,
+        HakoTimeMode_Num
+    } HakoTimeModeType;
+    typedef struct {
+        HakoTimeModeType    mode;
+        HakoAssetIdType     asset_num;
+        HakoAssetIdType     pdu_sync_asset_id;
+        bool                asset_pdu_check_status[HAKO_DATA_MAX_ASSET_NUM];
+        int32_t             channel_num;
+        bool                is_dirty[HAKO_PDU_CHANNEL_MAX];
+        bool                is_rbusy[HAKO_PDU_CHANNEL_MAX];
+        bool                is_wbusy[HAKO_PDU_CHANNEL_MAX];
+        HakoPduChannelType  channel[HAKO_PDU_CHANNEL_MAX];
+    } HakoPduMetaDataType;
 }
 
 #endif /* _HAKO_BASE_DATA_HPP_ */

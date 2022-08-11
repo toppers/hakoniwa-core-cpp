@@ -1,4 +1,5 @@
 #include "core/simulation/time/hako_time.hpp"
+#include "utils/hako_logger.hpp"
 
 HakoTimeType hako::core::simulation::time::TheWorld::time_begins_to_move(std::vector<HakoTimeType> &asset_times)
 {

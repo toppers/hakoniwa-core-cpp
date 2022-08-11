@@ -8,6 +8,7 @@
 #include "utils/hako_clock.hpp"
 #include "utils/hako_sem.hpp"
 #include "core/context/hako_context.hpp"
+#include "data/hako_pdu_data.hpp"
 #include <string.h>
 
 namespace hako::data {
@@ -19,6 +20,11 @@ namespace hako::data {
         uint32_t                asset_num;
         HakoAssetEntryType      assets[HAKO_DATA_MAX_ASSET_NUM];
         HakoAssetEntryEventType assets_ev[HAKO_DATA_MAX_ASSET_NUM];
+
+        /*
+         * PDU MetaData
+         */
+        HakoPduMetaDataType     pdu_meta_data;
     } HakoMasterDataType;
 
     class HakoMasterData {
@@ -42,6 +48,7 @@ namespace hako::data {
                 this->master_datap_->master_pid = context.get_pid();
             }
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
         }
         pid_t get_master_pid()
         {
@@ -62,14 +69,17 @@ namespace hako::data {
             if (datap == nullptr) {
                 return false;
             }
+            //printf("master load:addr=%p\n", datap);
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
             return true;
         }
 
         void destroy()
         {
             if (this->shmp_ != nullptr) {
+                this->pdu_datap_->destroy();
                 this->shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_0);
                 this->master_datap_ = nullptr;
                 this->shmp_ = nullptr;
@@ -255,7 +265,7 @@ namespace hako::data {
         }
         void get_asset_times(std::vector<HakoTimeType> & asset_times)
         {
-            this->lock();
+            //this->lock();
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                 HakoAssetEntryType &entry = this->master_datap_->assets[i];
                 if (entry.type == hako::data::HakoAssetType::HakoAsset_Unknown) {
@@ -263,7 +273,7 @@ namespace hako::data {
                 }                
                 asset_times.push_back(this->master_datap_->assets_ev[i].ctime);
             }
-            this->unlock();
+            //this->unlock();
         }
         void get_asset_names(std::vector<std::shared_ptr<std::string>> &asset_lists)
         {
@@ -278,10 +288,23 @@ namespace hako::data {
             }
             this->unlock();
         }
-
+        std::shared_ptr<HakoPduData> get_pdu_data()
+        {
+            return this->pdu_datap_;
+        }
+        void destroy_pdu_data()
+        {
+            this->pdu_datap_->reset();
+            //this->pdu_datap_->destroy();
+        }
+        void create_pdu_data()
+        {
+            this->pdu_datap_->create(this->master_datap_->asset_num);
+        }
     private:
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
         HakoMasterDataType *master_datap_ = nullptr;
+        std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
     };
 }
 

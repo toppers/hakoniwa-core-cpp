@@ -11,16 +11,23 @@ bool hako::HakoMasterControllerImpl::execute()
     HakoSimulationStateType next;
     bool is_changed = this->sim_event_->do_event_handling(prev, next);
     if (is_changed) {
-        if ((prev == HakoSim_Resetting) && (next == HakoSim_Stopped)) {
+        if ((prev == HakoSim_Runnable) && (next == HakoSim_Running)) {
+            this->master_data_->create_pdu_data();
+        }
+        else if ((prev == HakoSim_Resetting) && (next == HakoSim_Stopped)) {
             this->master_data_->lock();
             auto& timeset = this->master_data_->ref_time_nolock();
             timeset.current = 0;
             this->theWorld_->reset_world_time();
             this->master_data_->unlock();
+            this->master_data_->destroy_pdu_data();
         }
     }
 
     if (next != HakoSim_Running) {
+        return false;
+    }
+    else if (this->master_data_->get_pdu_data()->is_simulation_mode() == false) {
         return false;
     }
     auto prev_world_time = this->theWorld_->get_world_time_usec();
@@ -29,13 +36,21 @@ bool hako::HakoMasterControllerImpl::execute()
     this->master_data_->get_asset_times(asset_times);
     auto world_time = this->theWorld_->time_begins_to_move(asset_times);
     if (world_time > prev_world_time) {
-        this->master_data_->lock();
+        //this->master_data_->lock();
         auto& timeset = this->master_data_->ref_time_nolock();
         timeset.current = world_time;
-        this->master_data_->unlock();
+        //this->master_data_->unlock();
+
+        /*
+         * comment out try_pdu_mode_state_change() call because of process context switch overhead is too big!!!
+         * instead of this approach, pdu atomicity is guaranteed for try write/read using busy flag.
+         */
+        //this->master_data_->get_pdu_data()->try_pdu_mode_state_change();
+        //hako::utils::logger::get("core")->info("move: world_time={0}", world_time);
         return true;
     }
     else {
+        //hako::utils::logger::get("core")->info("skip: world_time={0}", world_time);
         return false;
     }
 }

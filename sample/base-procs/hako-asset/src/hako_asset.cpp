@@ -58,6 +58,7 @@ int main(int argc, const char* argv[])
         std::cout << "ERROR: Not found hako-master on this PC" << std::endl;
         return 1;
     }
+    hako_asset->create_pdu_channel(1, 100);
     AssetCallbackType callback;
     callback.reset = reset_callback;
     callback.start = start_callback;
@@ -67,14 +68,31 @@ int main(int argc, const char* argv[])
         std::cout << "ERROR: Can not register asset" << std::endl;
         return 1;
     }
-    
+    char buf[100];
+    memcpy(buf, "Hello World!!", 14);
     while (hako_asset_is_end == false) {
-        hako_asset->notify_simtime(asset_name_str, hako_asset_time_usec);
-        HakoTimeType world_time = hako_asset->get_worldtime();
-        if (world_time >= hako_asset_time_usec) {
-            hako_asset_time_usec += delta_usec;
+        if (hako_asset->is_pdu_created() == false) {
+            usleep(1000 * 1000);
+            std::cout << "not pdu created...yet" << std::endl;
+            continue;
         }
-        printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
+        if (hako_asset->is_simulation_mode()) {
+            hako_asset->notify_simtime(asset_name_str, hako_asset_time_usec);
+            HakoTimeType world_time = hako_asset->get_worldtime();
+            if (world_time >= hako_asset_time_usec) {
+                hako_asset_time_usec += delta_usec;
+            }
+            char tmp[100];
+            hako_asset->read_pdu(asset_name_str, 1, tmp, 100);
+            hako_asset->notify_read_pdu_done(asset_name_str);
+            printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
+            printf("buf:%s pdu:%s\n", buf, tmp);
+        }
+        else if (hako_asset->is_pdu_sync_mode(asset_name_str)) {
+            hako_asset->write_pdu(asset_name_str, 1, buf, 100);
+            hako_asset->notify_write_pdu_done(asset_name_str);
+        }
+
         usleep(delta_usec);
     }
     hako_asset->asset_unregister(asset_name_str);
