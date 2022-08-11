@@ -149,7 +149,7 @@ bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, Hako
         hako::utils::logger::get("core")->info("read_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
-    return this->master_data_->get_pdu_data()->read_pdu(channel_id, pdu_data, len);
+    return this->master_data_->get_pdu_data()->read_pdu(asset->id, channel_id, pdu_data, len);
 }
 
 void hako::HakoAssetControllerImpl::notify_read_pdu_done(const std::string& asset_name)

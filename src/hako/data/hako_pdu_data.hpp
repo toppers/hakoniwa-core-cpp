@@ -46,15 +46,22 @@ namespace hako::data {
         }
         bool is_pdu_rbusy(HakoPduChannelIdType channel_id)
         {
-            return this->pdu_meta_data_->is_rbusy[channel_id];
+            bool ret = false;
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                if (this->pdu_meta_data_->is_rbusy[i][channel_id]) {
+                    ret = true;
+                    break;
+                }
+            }
+            return ret;
         }
         void set_pdu_wbusy_status(HakoPduChannelIdType channel_id, bool busy_status)
         {
             this->pdu_meta_data_->is_wbusy[channel_id] = busy_status;
         }
-        void set_pdu_rbusy_status(HakoPduChannelIdType channel_id, bool busy_status)
+        void set_pdu_rbusy_status(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, bool busy_status)
         {
-            this->pdu_meta_data_->is_rbusy[channel_id] = busy_status;
+            this->pdu_meta_data_->is_rbusy[asset_id][channel_id] = busy_status;
         }
         /*
          * writers: only one!
@@ -85,7 +92,7 @@ namespace hako::data {
         /*
          * readers: only one!
          */
-        bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+        bool read_pdu(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return false;
@@ -99,9 +106,9 @@ namespace hako::data {
             //READER wait until WRITER has done with rbusy flag=false 
             //in order to avoid deadlock situation for waiting each other...
             while (true) {
-                this->set_pdu_rbusy_status(channel_id, true);
+                this->set_pdu_rbusy_status(asset_id, channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
-                    this->set_pdu_rbusy_status(channel_id, false);
+                    this->set_pdu_rbusy_status(asset_id, channel_id, false);
                     //usleep(1000); /* 1msec sleep */
                     continue;
                 }
@@ -109,7 +116,7 @@ namespace hako::data {
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
-            this->set_pdu_rbusy_status(channel_id, false);
+            this->set_pdu_rbusy_status(asset_id, channel_id, false);
             return true;
         }
         void notify_read_pdu_done(HakoAssetIdType asset_id)
@@ -214,12 +221,14 @@ namespace hako::data {
                 this->pdu_meta_data_->mode = HakoTimeMode_Asset;
                 for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                     this->pdu_meta_data_->asset_pdu_check_status[i] = false;
+                    for (int j = 0; j < HAKO_PDU_CHANNEL_MAX; j++) {
+                        this->pdu_meta_data_->is_rbusy[i][j] = false;
+                    }
                 }
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
                     //this->pdu_meta_data_->channel[i].offset = 0;
                     //this->pdu_meta_data_->channel[i].size = 0;
                     this->pdu_meta_data_->is_dirty[i] = false;
-                    this->pdu_meta_data_->is_rbusy[i] = false;
                     this->pdu_meta_data_->is_wbusy[i] = false;
                 }
                 ssize_t total_size = this->pdu_total_size();

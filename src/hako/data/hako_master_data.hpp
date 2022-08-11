@@ -182,6 +182,21 @@ namespace hako::data {
             this->unlock();
             return id;
         }
+        HakoAssetIdType get_asset_id()
+        {
+            HakoAssetIdType id = -1;
+            hako::core::context::HakoContext context;
+            pid_t pid = context.get_pid();
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                if (this->master_datap_->assets[i].type != HakoAsset_Unknown) {
+                    if (this->master_datap_->assets_ev[i].pid == pid) {
+                        id = i;
+                        break;
+                    }
+                }
+            }
+            return id;
+        }
         bool free_asset(const std::string &name)
         {
             bool ret = false;
