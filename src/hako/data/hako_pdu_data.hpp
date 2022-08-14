@@ -35,9 +35,17 @@ namespace hako::data {
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             return ret;
         }
-        bool is_pdu_dirty(HakoPduChannelIdType channel_id)
+        bool is_pdu_dirty(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
-            return this->pdu_meta_data_->is_dirty[channel_id];
+            if (this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] == this->pdu_meta_data_->pdu_write_version[channel_id])
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+            //return this->pdu_meta_data_->is_dirty[channel_id];
         }
 
         bool is_pdu_wbusy(HakoPduChannelIdType channel_id)
@@ -85,6 +93,7 @@ namespace hako::data {
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], &pdu_data[0], len);
             this->pdu_meta_data_->is_dirty[channel_id] = true;
+            this->pdu_meta_data_->pdu_write_version[channel_id]++;
             this->set_pdu_wbusy_status(channel_id, false);
             return true;
         }
@@ -116,6 +125,7 @@ namespace hako::data {
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
+            this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] = this->pdu_meta_data_->pdu_write_version[channel_id];
             this->set_pdu_rbusy_status(asset_id, channel_id, false);
             return true;
         }
@@ -223,6 +233,7 @@ namespace hako::data {
                     this->pdu_meta_data_->asset_pdu_check_status[i] = false;
                     for (int j = 0; j < HAKO_PDU_CHANNEL_MAX; j++) {
                         this->pdu_meta_data_->is_rbusy[i][j] = false;
+                        this->pdu_meta_data_->pdu_read_version[i][j] = 0;
                     }
                 }
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
@@ -230,6 +241,7 @@ namespace hako::data {
                     //this->pdu_meta_data_->channel[i].size = 0;
                     this->pdu_meta_data_->is_dirty[i] = false;
                     this->pdu_meta_data_->is_wbusy[i] = false;
+                    this->pdu_meta_data_->pdu_write_version[i] = 0;
                 }
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);

@@ -68,6 +68,12 @@ namespace hako::data {
         bool                is_rbusy[HAKO_DATA_MAX_ASSET_NUM][HAKO_PDU_CHANNEL_MAX];
         bool                is_wbusy[HAKO_PDU_CHANNEL_MAX];
         HakoPduChannelType  channel[HAKO_PDU_CHANNEL_MAX];
+
+        /*
+         * usecase: dirty check 
+         */
+        uint32_t            pdu_read_version[HAKO_DATA_MAX_ASSET_NUM][HAKO_PDU_CHANNEL_MAX];
+        uint32_t            pdu_write_version[HAKO_PDU_CHANNEL_MAX];
     } HakoPduMetaDataType;
 }
 
