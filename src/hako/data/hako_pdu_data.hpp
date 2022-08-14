@@ -37,7 +37,7 @@ namespace hako::data {
         }
         bool is_pdu_dirty(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
-            if (this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] == this->pdu_meta_data_->pdu_write_version[channel_id])
+            if (this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] != this->pdu_meta_data_->pdu_write_version[channel_id])
             {
                 return true;
             }
