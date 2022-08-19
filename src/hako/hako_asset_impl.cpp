@@ -103,8 +103,9 @@ bool hako::HakoAssetControllerImpl::feedback(const std::string& asset_name, bool
         else {
             ret = false;
         }
-        hako::utils::logger::get("core")->info("feedback isOk={0} ret={1} state={2} exp_state={3}", isOk, ret, state, exp_state);
-        hako::utils::logger::get("core")->flush();
+        //delete logs because deadlock occured... 
+        //hako::utils::logger::get("core")->info("feedback isOk={0} ret={1} state={2} exp_state={3}", isOk, ret, state, exp_state);
+        //hako::utils::logger::get("core")->flush();
     }
     this->master_data_->unlock();
     return ret;
