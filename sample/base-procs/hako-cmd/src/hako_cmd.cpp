@@ -21,14 +21,24 @@ int main(int argc, const char* argv[])
     hako_status.push_back("resetting");
     hako_status.push_back("error");
     hako_status.push_back("terminated");
-    if (argc != 2) {
-        printf("Usage: %s {start|stop|reset|status}\n", argv[0]);
+
+    if (argc < 2) {
+        printf("Usage: %s {start|stop|reset|status|dump <cid>}\n", argv[0]);
         return 1;
     }
     signal(SIGINT, hako_cmd_signal_handler);
     signal(SIGTERM, hako_cmd_signal_handler);
 
     std::string cmd = argv[1];
+    int channel_id = 0;
+    if (cmd == "dump") {
+        if (argc != 3) {
+            printf("ERROR: not set channel id\n");
+            return 1;
+        }
+        channel_id = atoi(argv[2]);
+        //printf("channel_id=%d\n", channel_id);
+    }
 
     hako::logger::init("core");
     hako::logger::init("cmd");
@@ -60,6 +70,28 @@ int main(int argc, const char* argv[])
         hako_sim_ctrl->assets(asset_list);
         for(std::shared_ptr<std::string> name :asset_list) {
             std::cout << *name << std::endl;
+        }
+    }
+    else if (cmd == "dump") {
+        size_t size = hako_sim_ctrl->pdu_size(channel_id);
+        if (size < 0) {
+            printf("ERROR: channel id is invalid\n");
+            return 1;
+        }
+        char *pdu_data = (char*)malloc(size);
+        if (pdu_data == nullptr) {
+            printf("ERROR: can not allocate memory...\n");
+            return 1;
+        }
+        bool ret = hako_sim_ctrl->read_pdu(channel_id, pdu_data, size);
+        if (ret) {
+            write(1, pdu_data, size);
+            free(pdu_data);
+        }
+        else {
+            printf("ERROR: internal error..\n");
+            free(pdu_data);
+            return 1;
         }
     }
     else {

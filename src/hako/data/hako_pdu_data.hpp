@@ -129,6 +129,52 @@ namespace hako::data {
             this->set_pdu_rbusy_status(asset_id, channel_id, false);
             return true;
         }
+        bool read_pdu_nolock(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+        {
+            if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                return false;
+            }
+            else if (pdu_data == nullptr) {
+                return false;
+            }
+            else if (this->pdu_ == nullptr) {
+                this->load(false);
+            }
+            size_t copy_len = len;
+            if (len > this->pdu_meta_data_->channel[channel_id].size) {
+                copy_len = this->pdu_meta_data_->channel[channel_id].size;
+            }
+            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            memcpy(pdu_data, &this->pdu_[off], copy_len);
+            return true;
+        }
+        bool write_pdu_nolock(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
+        {
+            if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                return false;
+            }
+            else if (pdu_data == nullptr) {
+                return false;
+            }
+            else if (this->pdu_ == nullptr) {
+                this->load(false);
+            }
+            size_t copy_len = len;
+            if (len < this->pdu_meta_data_->channel[channel_id].size) {
+                copy_len = this->pdu_meta_data_->channel[channel_id].size;
+            }
+            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            memcpy(&this->pdu_[off], pdu_data, copy_len);
+            return true;
+        }
+        size_t pdu_size_nolock(HakoPduChannelIdType channel_id)
+        {
+            if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                return -1;
+            }
+            return this->pdu_meta_data_->channel[channel_id].size;
+        }
+
         void notify_read_pdu_done(HakoAssetIdType asset_id)
         {
             if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
@@ -260,7 +306,7 @@ namespace hako::data {
                 return true;
             }
         }
-        bool load()
+        bool load(bool is_debug = true)
         {
             if (this->pdu_ != nullptr) {
                 return true;
@@ -270,7 +316,9 @@ namespace hako::data {
             if (datap == nullptr) {
                 return false;
             }
-            std::cout << "LOADED: PDU DATA" << std::endl;
+            if (is_debug) {
+                std::cout << "LOADED: PDU DATA" << std::endl;
+            }
             this->pdu_ = static_cast<char*>(datap);
             return true;
         }

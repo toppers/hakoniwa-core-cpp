@@ -28,6 +28,13 @@ namespace hako {
         bool assets(std::vector<std::shared_ptr<std::string>> & asset_list);
 
         /*
+         * PDU inspectors
+         */
+        virtual bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
+        virtual bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
+        virtual size_t pdu_size(HakoPduChannelIdType channel_id);
+
+        /*
          * event monitor
          */
         void do_event_handling();

@@ -61,6 +61,18 @@ bool hako::HakoSimulationEventController::assets(std::vector<std::shared_ptr<std
     this->master_data_->get_asset_names(asset_list);
     return true;
 }
+bool hako::HakoSimulationEventController::write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
+{
+    return this->master_data_->get_pdu_data()->write_pdu_nolock(channel_id, pdu_data, len);
+}
+bool hako::HakoSimulationEventController::read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+{
+    return this->master_data_->get_pdu_data()->read_pdu_nolock(channel_id, pdu_data, len);
+}
+size_t hako::HakoSimulationEventController::pdu_size(HakoPduChannelIdType channel_id)
+{
+    return this->master_data_->get_pdu_data()->pdu_size_nolock(channel_id);
+}
 
 void hako::HakoSimulationEventController::do_event_handling()
 {
