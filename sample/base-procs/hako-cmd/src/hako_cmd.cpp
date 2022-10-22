@@ -4,10 +4,29 @@
 #include <unistd.h>
 #include <signal.h>
 #include <iostream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static void hako_cmd_signal_handler(int sig)
 {
     hako::logger::get("cmd")->info("SIGNAL RECV: {0}", sig);
+}
+static int read_file_data(char *filepath, int size, char* buffer)
+{
+    int fd = open(filepath, O_RDONLY);
+    if (fd < 0) {
+        printf("ERROR: can not open file %s errno=%d\n", filepath, errno);
+        return -1;
+    }
+    int ret = read(fd, buffer, size);
+    if (ret < 0) {
+        printf("ERROR: can not read file %s errno=%d\n", filepath, errno);
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return 0;
 }
 
 int main(int argc, const char* argv[])
@@ -22,8 +41,8 @@ int main(int argc, const char* argv[])
     hako_status.push_back("error");
     hako_status.push_back("terminated");
 
-    if (argc < 2) {
-        printf("Usage: %s {start|stop|reset|status|dump <cid>}\n", argv[0]);
+    if (argc > 4) {
+        printf("Usage: %s {start|stop|reset|status|dump <cid>|restore <cid> <bin>}\n", argv[0]);
         return 1;
     }
     signal(SIGINT, hako_cmd_signal_handler);
@@ -31,12 +50,22 @@ int main(int argc, const char* argv[])
 
     std::string cmd = argv[1];
     int channel_id = 0;
+    char *restore_file = nullptr;
     if (cmd == "dump") {
         if (argc != 3) {
             printf("ERROR: not set channel id\n");
             return 1;
         }
         channel_id = atoi(argv[2]);
+        //printf("channel_id=%d\n", channel_id);
+    }
+    else if (cmd == "restore") {
+        if (argc != 4) {
+            printf("ERROR: not set channel id or restore bin file\n");
+            return 1;
+        }
+        channel_id = atoi(argv[2]);
+        restore_file = (char*)argv[3];
         //printf("channel_id=%d\n", channel_id);
     }
 
@@ -74,7 +103,7 @@ int main(int argc, const char* argv[])
     }
     else if (cmd == "dump") {
         size_t size = hako_sim_ctrl->pdu_size(channel_id);
-        if (size < 0) {
+        if (size == (size_t)(-1)) {
             printf("ERROR: channel id is invalid\n");
             return 1;
         }
@@ -86,6 +115,34 @@ int main(int argc, const char* argv[])
         bool ret = hako_sim_ctrl->read_pdu(channel_id, pdu_data, size);
         if (ret) {
             write(1, pdu_data, size);
+            free(pdu_data);
+        }
+        else {
+            printf("ERROR: internal error..\n");
+            free(pdu_data);
+            return 1;
+        }
+    }
+    else if (cmd == "restore") {
+        size_t size = hako_sim_ctrl->pdu_size(channel_id);
+        if (size == (size_t)(-1)) {
+            printf("ERROR: channel id is invalid\n");
+            return 1;
+        }
+        char *pdu_data = (char*)malloc(size);
+        if (pdu_data == nullptr) {
+            printf("ERROR: can not allocate memory...\n");
+            return 1;
+        }
+        int ret_val = read_file_data(restore_file, size, pdu_data);
+        if (ret_val == 0) {
+            bool ret = hako_sim_ctrl->write_pdu(channel_id, pdu_data, size);
+            if (ret == false) {
+                printf("ERROR: hako_sim_ctrl->write_pdu error.. channel_id=%d\n", channel_id);
+                ret_val = -1;
+            }
+        }
+        if (ret_val == 0) {
             free(pdu_data);
         }
         else {
