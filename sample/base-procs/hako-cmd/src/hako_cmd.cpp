@@ -41,7 +41,7 @@ int main(int argc, const char* argv[])
     hako_status.push_back("error");
     hako_status.push_back("terminated");
 
-    if (argc > 4) {
+    if ((argc == 1) || (argc > 4)) {
         printf("Usage: %s {start|stop|reset|status|dump <cid>|restore <cid> <bin>}\n", argv[0]);
         return 1;
     }
