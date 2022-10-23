@@ -12,12 +12,14 @@ namespace hako::data {
         HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> master_shmp)
         {
             this->pdu_meta_data_ = pdu_meta_data;
+            this->pdu_ = nullptr;
             this->master_shmp_ = master_shmp;
             this->asset_shmp_ = std::make_shared<hako::utils::HakoSharedMemory>();
         }
         virtual ~HakoPduData()
         {
             this->pdu_meta_data_ = nullptr;
+            this->pdu_ = nullptr;
         }
         bool create_channel(HakoPduChannelIdType channel_id, size_t size)
         {
