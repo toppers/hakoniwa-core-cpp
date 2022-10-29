@@ -1,7 +1,7 @@
 #include "types/hako_types.hpp"
 
-#include "utils/hako_shared_memory.hpp"
-#include "utils/hako_sem.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_sem.hpp"
 
 int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
 {

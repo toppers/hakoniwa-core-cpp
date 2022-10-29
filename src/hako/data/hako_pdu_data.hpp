@@ -2,7 +2,7 @@
 #define _HAKO_PDU_DATA_HPP_
 
 #include "data/hako_base_data.hpp"
-#include "utils/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
 #include <string.h>
 #include <iostream>
 

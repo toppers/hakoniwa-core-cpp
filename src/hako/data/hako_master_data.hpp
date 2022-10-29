@@ -2,11 +2,11 @@
 #define _HAKO_MASTER_DATA_HPP_
 
 #include "data/hako_base_data.hpp"
-#include "utils/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
 #include "utils/hako_string.hpp"
 #include "utils/hako_assert.hpp"
 #include "utils/hako_clock.hpp"
-#include "utils/hako_sem.hpp"
+#include "utils/hako_share/hako_sem.hpp"
 #include "core/context/hako_context.hpp"
 #include "data/hako_pdu_data.hpp"
 #include <string.h>
