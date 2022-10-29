@@ -1,9 +1,9 @@
 #ifndef _HAKO_ASSERT_HPP_
 #define _HAKO_ASSERT_HPP_
 
+#include "types/hako_types.hpp"
 #include "utils/hako_logger.hpp"
 
-#include <assert.h>
 
 #if !defined(NDEBUG)
 #define HAKO_ASSERT(expr)	\

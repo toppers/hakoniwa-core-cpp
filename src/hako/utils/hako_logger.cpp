@@ -1,5 +1,6 @@
 #include "utils/hako_logger.hpp"
-#include "spdlog/sinks/rotating_file_sink.h"
+
+#include "spdlog/sinks/basic_file_sink.h"
 
 void hako::utils::logger::init(const std::string &id)
 {
@@ -7,10 +8,7 @@ void hako::utils::logger::init(const std::string &id)
     sprintf(logdir_path, "%s/", HAKO_LOGGER_DIRPATH);
     (void)mkdir(logdir_path, 0777);
     std::string logfile_path = logdir_path + id + HAKO_LOGGER_FILE_EXTENSION;
-    spdlog::rotating_logger_mt(id, 
-        logfile_path, 
-        HAKO_LOGGER_MAXSIZE, 
-        HAKO_LOGGER_ROTNUM);
+    spdlog::basic_logger_mt(id, logfile_path);
     spdlog::flush_every(std::chrono::seconds(1));
     spdlog::get(id)->info("hako logger[{0}] initialized", id);
     return;

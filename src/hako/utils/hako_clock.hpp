@@ -3,7 +3,6 @@
 
 #include <types/hako_types.hpp>
 #include <utils/hako_logger.hpp>
-#include <time.h>
 
 static inline HakoTimeType hako_get_clock()
 {

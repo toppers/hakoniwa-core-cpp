@@ -1,7 +1,4 @@
-#include <sys/shm.h>
-#include <sys/stat.h>
-#include <sys/ipc.h>
-#include<sys/sem.h>
+#include "types/hako_types.hpp"
 
 #include "utils/hako_shared_memory.hpp"
 #include "utils/hako_sem.hpp"

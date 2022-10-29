@@ -1,8 +1,7 @@
 #ifndef _HAKO_CONTEXT_HPP_
 #define _HAKO_CONTEXT_HPP_
 
-#include <sys/types.h>
-#include <unistd.h>
+#include "types/hako_types.hpp"
 
 namespace hako::core::context {
     class HakoContext {
