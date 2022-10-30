@@ -2,6 +2,7 @@
 #define _HAKO_SHARED_MEMORY_HPP_
 
 #include "types/hako_types.hpp"
+#include "utils/hako_share/impl/hako_mmap.hpp"
 #include <map>
 
 namespace hako::utils {
@@ -15,7 +16,8 @@ namespace hako::utils {
     
     typedef struct {
         SharedMemoryMetaDataType *addr;
-        int32_t shm_id;
+        int32_t shm_id; /* for shm */
+        HakoMmapObjectType *mmap_obj; /* for mmap */
         int32_t sem_id;
     } SharedMemoryInfoType;
 

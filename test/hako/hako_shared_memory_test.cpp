@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "utils/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
 
 class HakoSharedMemoryTest : public ::testing::Test {
 protected:
@@ -24,7 +24,7 @@ TEST_F(HakoSharedMemoryTest, HakoSharedMemory_01)
     EXPECT_TRUE(shm.get() != nullptr);
 
     int32_t shmid = shm->create_memory(HAKO_SHARED_MEMORY_ID_0, 1024);
-    EXPECT_TRUE(shmid > 0);
+    EXPECT_TRUE(shmid >= 0);
 
     void *value = shm->lock_memory(HAKO_SHARED_MEMORY_ID_0);
     EXPECT_TRUE(value != nullptr);

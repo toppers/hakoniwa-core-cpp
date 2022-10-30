@@ -14,6 +14,8 @@
 #include <time.h>
 
 #include <assert.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 #else
 

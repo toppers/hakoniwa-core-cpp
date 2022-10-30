@@ -33,6 +33,7 @@ int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
     info.addr = metap;
     info.shm_id = shmid;
     info.sem_id = sem_id;
+    info.mmap_obj = nullptr;
     this->shared_memory_map_.insert(std::make_pair(key, info));
     return shmid;
 }

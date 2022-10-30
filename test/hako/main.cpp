@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "hako.hpp"
-#include "utils/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
 #include <unistd.h>
 
 void do_shared_memory_multi_proc_test()
