@@ -19,14 +19,14 @@ int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
         std::string core_mmap_path = config.param["core_mmap_path"];
         snprintf(buf, sizeof(buf), "%s/mmap-0x%x.bin", core_mmap_path.c_str(), key);
     }
-    printf("INFO: mmap path=%s\n", buf);
+    //printf("INFO: mmap path=%s\n", buf);
     std::string filepath(buf);
     HakoMmapObjectType *mmap_obj = hako_mmap_create(filepath, total_size);
     if (mmap_obj == nullptr) {
         printf("ERROR: hako_mmap_create() id=%d size=%d error=%d\n", key, size, errno);
         return -1;
     }
-    printf("INFO: hako_mmap_create() key=%d size=%d \n", key, size);
+    //printf("INFO: hako_mmap_create() key=%d size=%d \n", key, size);
     void *shared_memory = mmap_obj->mmap_addr;
 
     int32_t sem_id = hako::utils::sem::create(key);
@@ -71,7 +71,7 @@ void* hako::utils::HakoSharedMemory::load_memory_shmid(int32_t key, int32_t shmi
             std::string core_mmap_path = config.param["core_mmap_path"];
             snprintf(buf, sizeof(buf), "%s/mmap-0x%x.bin", core_mmap_path.c_str(), key);
         }
-        printf("INFO: mmap path=%s\n", buf);
+        //printf("INFO: mmap path=%s\n", buf);
         std::string filepath(buf);
 
         HakoMmapObjectType *mmap_obj = hako_mmap_open(filepath);

@@ -26,7 +26,7 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
         }
         (void)truncate(filepath.c_str(), size);
         close(fd);
-        printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
+        //printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
     }
     handle->mmap_obj.obj = handle;
     handle->size = size;

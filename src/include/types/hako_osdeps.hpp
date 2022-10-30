@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/file.h>
 
 #else
 

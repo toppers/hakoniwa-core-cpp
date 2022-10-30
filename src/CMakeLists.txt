@@ -13,8 +13,10 @@ add_library(
     hako/core/simulation/time/hako_time.cpp
     hako/core/rpc/hako_internal_rpc.cpp
     hako/utils/hako_share/impl/posix/hako_shared_memory_mmap.cpp
-    hako/utils/hako_share/impl/posix/hako_sem.cpp
+    #hako/utils/hako_share/impl/posix/hako_sem.cpp
     hako/utils/hako_share/impl/posix/hako_mmap.cpp
+    hako/utils/hako_share/impl/posix/hako_flock.cpp
+    hako/utils/hako_share/impl/posix/hako_sem_flock.cpp
     hako/utils/hako_string.cpp
     hako/utils/hako_logger.cpp
 )
