@@ -3,13 +3,23 @@
 #include "utils/hako_share/hako_shared_memory.hpp"
 #include "utils/hako_share/hako_sem.hpp"
 #include "utils/hako_share/impl/hako_mmap.hpp"
+#include "utils/hako_config_loader.hpp"
 
 int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
 {
     int32_t total_size = size + sizeof(SharedMemoryMetaDataType);
     char buf[4096];
-    //TODO コンフィグファイルでパスを決める
-    snprintf(buf, sizeof(buf), "./mmap-0x%x.bin", key);
+    HakoConfigType config;
+    hako_config_load(config);
+
+    if (config.param == nullptr) {
+        snprintf(buf, sizeof(buf), "./mmap-0x%x.bin", key);
+    }
+    else {
+        std::string core_mmap_path = config.param["core_mmap_path"];
+        snprintf(buf, sizeof(buf), "%s/mmap-0x%x.bin", core_mmap_path.c_str(), key);
+    }
+    printf("INFO: mmap path=%s\n", buf);
     std::string filepath(buf);
     HakoMmapObjectType *mmap_obj = hako_mmap_create(filepath, total_size);
     if (mmap_obj == nullptr) {
@@ -52,8 +62,16 @@ void* hako::utils::HakoSharedMemory::load_memory_shmid(int32_t key, int32_t shmi
     }
     if (this->shared_memory_map_.count(key) == 0) {
         char buf[4096];
-        //TODO コンフィグファイルでパスを決める
-        snprintf(buf, sizeof(buf), "./mmap-0x%x.bin", key);
+        HakoConfigType config;
+        hako_config_load(config);
+        if (config.param == nullptr) {
+            snprintf(buf, sizeof(buf), "./mmap-0x%x.bin", key);
+        }
+        else {
+            std::string core_mmap_path = config.param["core_mmap_path"];
+            snprintf(buf, sizeof(buf), "%s/mmap-0x%x.bin", core_mmap_path.c_str(), key);
+        }
+        printf("INFO: mmap path=%s\n", buf);
         std::string filepath(buf);
 
         HakoMmapObjectType *mmap_obj = hako_mmap_open(filepath);

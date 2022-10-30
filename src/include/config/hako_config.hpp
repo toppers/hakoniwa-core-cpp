@@ -17,4 +17,6 @@
 
 #define HAKO_PDU_CHANNEL_MAX        256
 
+#define HAKO_CONFIG_DEFAULT_PATH "./hakoniwa_core_config.json"
+
 #endif /* _HAKO_CONFIG_HPP_ */

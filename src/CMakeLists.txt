@@ -24,4 +24,5 @@ target_include_directories(
     PRIVATE /usr/local/include
     PRIVATE ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
+    PRIVATE ${PROJECT_SOURCE_DIR}/../third-party/json/single_include
 )
