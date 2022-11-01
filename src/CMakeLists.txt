@@ -3,6 +3,8 @@ set(HAKO_CMAKE_VERSION ${HAKO_CMAKE_VERSION})
 project(hakoniwa-core
     LANGUAGES C CXX
 )
+find_package(spdlog REQUIRED)
+
 
 add_library(
     hako STATIC
@@ -24,7 +26,10 @@ add_library(
 target_include_directories(
     hako
     PRIVATE /usr/local/include
+    PRIVATE /mingw64/include
     PRIVATE ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
     PRIVATE ${PROJECT_SOURCE_DIR}/../third-party/json/single_include
 )
+
+target_link_libraries(hako PRIVATE spdlog::spdlog)
