@@ -20,15 +20,27 @@ then
     exit 0
 fi
 
+OS_TYPE="posix"
+uname -a | grep Linux > /dev/null
+if [ $? -ne 0 ]
+then
+    OS_TYPE="win"
+fi
+
 cd cmake-build
 if [ ${OPT} = "test" ]
 then
-    cmake -D test=true -D debug=true -D gcov=true ..
+    cmake -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
 
     make
     make test
 else
-    cmake -D test=false -D debug=true -D gcov=false ..
+    if [ ${OS_TYPE} = "posix" ]
+    then
+        cmake -D test=false -D debug=true -D gcov=false ..
+    else
+        cmake .. -G "MSYS Makefiles"
+    fi
     make
 fi
 

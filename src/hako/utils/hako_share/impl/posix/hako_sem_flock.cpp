@@ -51,7 +51,12 @@ static void hako_sem_down(int index)
             break;
         }
         hako_flock_release(flock_handle);
+#ifdef WIN32
+        //https://learn.microsoft.com/ja-jp/windows/win32/api/synchapi/nf-synchapi-sleep
+        Sleep(500);
+#else
         usleep(500*1000);
+#endif
         hako_flock_acquire(flock_handle);
     }
     hako_flock_release(flock_handle);

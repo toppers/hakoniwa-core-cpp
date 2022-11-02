@@ -5,6 +5,11 @@ project(hakoniwa-core
 )
 find_package(spdlog REQUIRED)
 
+set(OS_TYPE "posix")
+if(WIN32)
+    set(OS_TYPE "win")
+endif(WIN32)
+MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 add_library(
     hako STATIC
@@ -16,8 +21,8 @@ add_library(
     hako/core/rpc/hako_internal_rpc.cpp
     hako/utils/hako_share/impl/posix/hako_shared_memory_mmap.cpp
     #hako/utils/hako_share/impl/posix/hako_sem.cpp
-    hako/utils/hako_share/impl/posix/hako_mmap.cpp
-    hako/utils/hako_share/impl/posix/hako_flock.cpp
+    hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp
+    hako/utils/hako_share/impl/${OS_TYPE}/hako_flock.cpp
     hako/utils/hako_share/impl/posix/hako_sem_flock.cpp
     hako/utils/hako_string.cpp
     hako/utils/hako_logger.cpp

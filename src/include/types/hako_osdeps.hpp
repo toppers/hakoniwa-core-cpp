@@ -20,6 +20,8 @@
 
 #else
 
+#include "windows.h"
+
 #endif /* OS_TYPE */
 
 #endif /* _HAKO_OSDEPS_HPP_ */
