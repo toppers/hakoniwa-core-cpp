@@ -35,7 +35,7 @@ void hako::core::rpc::HakoInternalRpc::stop()
 }
 void hako::core::rpc::HakoInternalRpc::proxy_thread()
 {
-    hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread start: asset[{0}]", this->asset_id_);
+    //hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread start: asset[{0}]", this->asset_id_);
     while (true) {
         hako::utils::sem::asset_down(this->master_data_->get_semid(), this->asset_id_);
         auto* asset = this->master_data_->get_asset_event_nolock(this->asset_id_);
@@ -45,7 +45,7 @@ void hako::core::rpc::HakoInternalRpc::proxy_thread()
         hako::data::HakoAssetEventType event_id = asset->event;
         this->map_[event_id]();
     }
-    hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread stop: asset[{0}]", this->asset_id_);
+    //hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread stop: asset[{0}]", this->asset_id_);
     return;
 }
 

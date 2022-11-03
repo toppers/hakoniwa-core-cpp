@@ -9,7 +9,7 @@
 #define HAKO_ASSERT(expr)	\
 do {	\
 	if (!(expr))	{	\
-		hako::utils::logger::get("core")->critical("ASSERTION FAILED:{0}:{1}:{2}:{3}", __FILE__, __FUNCTION__, __LINE__, #expr);	\
+		printf("ASSERTION FAILED:%s:%s:%d:%s", __FILE__, __FUNCTION__, __LINE__, #expr);	\
 		assert(!(expr));	\
 	}	\
 } while (0)

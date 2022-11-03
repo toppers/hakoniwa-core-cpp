@@ -7,11 +7,11 @@ bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, Ass
     hako::core::context::HakoContext context;
     auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, &callbacks);
     if (id < 0) {
-        hako::utils::logger::get("core")->error("can not registered: asset[{0}]", name);
+        //hako::utils::logger::get("core")->error("can not registered: asset[{0}]", name);
         return false;
     }
     else {
-        hako::utils::logger::get("core")->info("Registered: asset[{0}]", name);
+        //hako::utils::logger::get("core")->info("Registered: asset[{0}]", name);
     }
     this->rpc_ = std::make_shared<hako::core::rpc::HakoInternalRpc>(id, this->master_data_);
     this->rpc_->register_callback(hako::data::HakoAssetEvent_Start, callbacks.start);
@@ -25,11 +25,11 @@ bool hako::HakoAssetControllerImpl::asset_register_polling(const std::string & n
     hako::core::context::HakoContext context;
     auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, nullptr);
     if (id < 0) {
-        hako::utils::logger::get("core")->error("can not registered: polling asset[{0}]", name);
+        //hako::utils::logger::get("core")->error("can not registered: polling asset[{0}]", name);
         return false;
     }
     else {
-        hako::utils::logger::get("core")->info("Registered: polling asset[{0}]", name);
+        //hako::utils::logger::get("core")->info("Registered: polling asset[{0}]", name);
     }
     return true;
 }
@@ -51,10 +51,10 @@ bool hako::HakoAssetControllerImpl::asset_unregister(const std::string & name)
 {
     auto ret = this->master_data_->free_asset(name);
     if (ret) {
-        hako::utils::logger::get("core")->info("Unregistered: asset[{0}]", name);
+        //hako::utils::logger::get("core")->info("Unregistered: asset[{0}]", name);
     }
     else {
-        hako::utils::logger::get("core")->error("can not unregistered: asset[{0}]", name);
+        //hako::utils::logger::get("core")->error("can not unregistered: asset[{0}]", name);
     }
     if (this->rpc_ != nullptr) {
         this->rpc_->stop();
@@ -138,7 +138,7 @@ bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, Hak
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
-        hako::utils::logger::get("core")->info("write_pdu: can not find asset[{0}]", asset_name);
+        //hako::utils::logger::get("core")->info("write_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
     return this->master_data_->get_pdu_data()->write_pdu(channel_id, pdu_data, len);
@@ -148,7 +148,7 @@ bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, Hako
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
-        hako::utils::logger::get("core")->info("read_pdu: can not find asset[{0}]", asset_name);
+        //hako::utils::logger::get("core")->info("read_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
     return this->master_data_->get_pdu_data()->read_pdu(asset->id, channel_id, pdu_data, len);

@@ -29,7 +29,8 @@ static void stop_callback()
 static void hako_asset_signal_handler(int sig)
 {
     if (asset_name != nullptr) {
-        hako::logger::get(*asset_name)->info("SIGNAL RECV: {0}", sig);
+        //hako::logger::get(*asset_name)->info("SIGNAL RECV: {0}", sig);
+        printf("SIGNAL RECV: %d\n", sig);
     }
     hako_asset_is_end = true;
 }
@@ -49,9 +50,9 @@ int main(int argc, const char* argv[])
     std::string asset_name_str = argv[2];
     asset_name = &asset_name_str;
 
-    hako::logger::init("core");
-    hako::logger::init(asset_name_str);
-    hako::logger::get(asset_name_str)->info("delta={0} usec asset_name={1}", delta_usec, asset_name_str);
+    //hako::logger::init("core");
+    //hako::logger::init(asset_name_str);
+    //hako::logger::get(asset_name_str)->info("delta={0} usec asset_name={1}", delta_usec, asset_name_str);
 
     hako_asset = hako::create_asset_controller();
     if (hako_asset == nullptr) {
@@ -85,7 +86,8 @@ int main(int argc, const char* argv[])
             char tmp[100];
             hako_asset->read_pdu(asset_name_str, 1, tmp, 100);
             hako_asset->notify_read_pdu_done(asset_name_str);
-            printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
+            //printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
+            std::cout << "TIME: W:" << world_time << " A: " << hako_asset_time_usec << std::endl;
             printf("buf:%s pdu:%s\n", buf, tmp);
         }
         else if (hako_asset->is_pdu_sync_mode(asset_name_str)) {
@@ -96,7 +98,7 @@ int main(int argc, const char* argv[])
         usleep(delta_usec);
     }
     hako_asset->asset_unregister(asset_name_str);
-    hako::logger::get(asset_name_str)->flush();
+    //hako::logger::get(asset_name_str)->flush();
 
     std::cout << "EXIT" << std::endl;
     return 0;

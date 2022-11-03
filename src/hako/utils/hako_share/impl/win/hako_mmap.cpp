@@ -11,6 +11,7 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
 {
     HakoMmapFileHandleObjectType *handle = (HakoMmapFileHandleObjectType *)malloc(sizeof(HakoMmapFileHandleObjectType));
     if (handle == nullptr) {
+        printf("ERROR: malloc() return error\n");
         return nullptr;
     }
     handle->size = -1;
@@ -18,6 +19,7 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
     handle->mmap_obj.obj = nullptr;
     int ret = win_open_rw(filepath.c_str(), &handle->fd);
     if (ret < 0) {
+        handle->fd.size = size;
         ret = win_create_rw(filepath.c_str(), &handle->fd);
         if (ret < 0) {
             printf("ERROR: can not create mmap file:%s\n", filepath.c_str());
@@ -29,6 +31,7 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
     handle->mmap_obj.mmap_addr = win_mmap(&handle->fd);
     if (handle->mmap_obj.mmap_addr == nullptr) {
         hako_mmap_destroy(&handle->mmap_obj);
+        printf("ERROR: win_mmap() return error\n");
         return nullptr;
     }
     return &handle->mmap_obj;

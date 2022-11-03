@@ -12,12 +12,12 @@ static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = null
 
 void hako::init()
 {
-    hako::utils::logger::init("core");
+    //hako::utils::logger::init("core");
     if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
         master_data_ptr->init();
     }
-    hako::utils::logger::get("core")->info("hakoniwa initialized");
+    //hako::utils::logger::get("core")->info("hakoniwa initialized");
     return;
 }
 void hako::destroy()
@@ -39,8 +39,8 @@ void hako::destroy()
     if (simevent_ptr != nullptr) {
         simevent_ptr = nullptr;
     }
-    hako::utils::logger::get("core")->info("hakoniwa destroyed");
-    hako::utils::logger::get("core")->flush();
+    //hako::utils::logger::get("core")->info("hakoniwa destroyed");
+    //hako::utils::logger::get("core")->flush();
     return;
 }
 
@@ -77,8 +77,8 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
         if (master_data_ptr->load() == false) {
-            hako::utils::logger::get("core")->error("get_simevent_controller() can not load master data");
-            hako::utils::logger::get("core")->flush();            
+            //hako::utils::logger::get("core")->error("get_simevent_controller() can not load master data");
+            //hako::utils::logger::get("core")->flush();            
             return nullptr;
         }
     }
@@ -88,9 +88,16 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
 
 void hako::logger::init(const std::string &id)
 {
-    hako::utils::logger::init(id);
+    //hako::utils::logger::init(id);
+    if (id.c_str() != nullptr) {
+        //nothing to do;
+    }
 }
 std::shared_ptr<spdlog::logger> hako::logger::get(const std::string &id)
 {
-    return hako::utils::logger::get(id);
+    if (id.c_str() != nullptr) {
+        //nothing to do
+    }
+    //return hako::utils::logger::get(id);
+    return nullptr;
 }

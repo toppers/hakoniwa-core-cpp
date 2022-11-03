@@ -23,7 +23,7 @@ extern int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset);
 
 static inline void win_filepath(const char* src, wchar_t *dst) 
 {
-    mbstowcs(dst, src, strlen(src));
+    mbstowcs(dst, src, strlen(src) + 1);
 }
 
 #endif /* _WINDOWS_FILE_IO_HPP_ */

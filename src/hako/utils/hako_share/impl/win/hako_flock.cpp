@@ -17,6 +17,7 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
     handle->flock_obj.obj = nullptr;
     int ret = win_open_rw(filepath.c_str(), &handle->fd);
     if (ret < 0) {
+        handle->fd.size = sizeof(int) * HAKO_CONFIG_MAX_SEM;
         ret = win_create_rw(filepath.c_str(), &handle->fd);
         if (ret < 0) {
             printf("ERROR: can not create flock file:%s\n", filepath.c_str());

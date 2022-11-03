@@ -98,7 +98,7 @@ bool hako::HakoSimulationEventController::do_event_handling(HakoSimulationStateT
     for (auto& asset_id : error_assets) {
         hako::data::HakoAssetEntryType *entry = this->master_data_->get_asset(asset_id);
         std::shared_ptr<std::string>  asset_name = hako::utils::hako_fixed2string(entry->name);
-        hako::utils::logger::get("core")->error("asset[{0}] timeout", *asset_name);
+        //hako::utils::logger::get("core")->error("asset[{0}] timeout", *asset_name);
         this->asset_controller_->asset_unregister(*asset_name);
     }
     return is_changed;
@@ -147,8 +147,8 @@ void hako::HakoSimulationEventController::do_event_handling_timeout_nolock(std::
         if (asset_ev != nullptr) {
             if (this->master_data_->is_asset_timeout_nolock(id)) {
                 HakoSimulationStateType state = this->master_data_->ref_state_nolock();
-                hako::utils::logger::get("core")->error("TIMEOUT:asset_id={0} state={1}", id, state);
-                std::cout << "ERROR: timeout asset_id=" << id << std::endl;
+                //hako::utils::logger::get("core")->error("TIMEOUT:asset_id={0} state={1}", id, state);
+                std::cout << "ERROR: timeout asset_id=" << id << "stated=" << state << std::endl;
                 error_assets->push_back(id);
             }
         }

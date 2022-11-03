@@ -10,7 +10,8 @@
 
 static void hako_cmd_signal_handler(int sig)
 {
-    hako::logger::get("cmd")->info("SIGNAL RECV: {0}", sig);
+    //hako::logger::get("cmd")->info("SIGNAL RECV: {0}", sig);
+        printf("SIGNAL RECV: %d\n", sig);
 }
 static int read_file_data(char *filepath, int size, char* buffer)
 {
@@ -69,9 +70,9 @@ int main(int argc, const char* argv[])
         //printf("channel_id=%d\n", channel_id);
     }
 
-    hako::logger::init("core");
-    hako::logger::init("cmd");
-    hako::logger::get("cmd")->info("cmd={0}", cmd);
+    //hako::logger::init("core");
+    //hako::logger::init("cmd");
+    //hako::logger::get("cmd")->info("cmd={0}", cmd);
 
     std::shared_ptr<hako::IHakoSimulationEventController> hako_sim_ctrl = hako::get_simevent_controller();
     if (hako_sim_ctrl == nullptr) {

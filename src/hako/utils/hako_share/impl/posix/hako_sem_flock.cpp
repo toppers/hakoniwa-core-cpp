@@ -93,7 +93,7 @@ int32_t hako::utils::sem::create(int32_t key)
     std::string filepath(buf);
     flock_handle = hako_flock_create(filepath);
     if (flock_handle == nullptr) {
-        hako::utils::logger::get("core")->error("hako_flock_create() key={0} error={1}", key, errno);
+        //hako::utils::logger::get("core")->error("hako_flock_create() key={0} error={1}", key, errno);
         return -1;
     }
 

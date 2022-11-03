@@ -22,5 +22,9 @@ void hako::utils::logger::init(const std::string &id)
 
 std::shared_ptr<spdlog::logger> hako::utils::logger::get(const std::string &id)
 {
-    return spdlog::get(id);
+    if (id.c_str() != nullptr) {
+        //nothing to do
+    }
+    //return spdlog::get(id);
+    return nullptr;
 }

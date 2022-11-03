@@ -1,5 +1,7 @@
 #include "types/hako_types.hpp"
 #include "types/win/os_file_io.hpp"
+#include "utils/hako_assert.hpp"
+#include <stdio.h>
 
 int  win_open_rw(const char* filepath, WinHandleType *whp)
 {
@@ -15,9 +17,11 @@ int  win_open_rw(const char* filepath, WinHandleType *whp)
                     0//hTemplateFile
                     );
     if (whp->handle == INVALID_HANDLE_VALUE) {
+        //printf("ERROR: win_open_rw(): CreateFileW() error\n");
         return -1;
     }
     whp->size = GetFileSize(whp->handle, 0);
+    printf("INFO: win_open_rw() size=%d\n", whp->size);
     return 0;
 }
 
@@ -35,9 +39,18 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
                     0//hTemplateFile
                     );
     if (whp->handle == INVALID_HANDLE_VALUE) {
+        printf("ERROR: win_create_rw(): CreateFileW() error\n");
         return -1;
     }
+    printf("INFO: win_create_rw() want size=%d\n", whp->size);
     (void)SetFileValidData(whp->handle, whp->size);
+    void *bufp = malloc(whp->size);
+    HAKO_ASSERT(bufp != NULL);
+    memset(bufp, 0, whp->size);
+    win_pwrite(whp, bufp, whp->size, 0);
+    free(bufp);
+    whp->size = GetFileSize(whp->handle, 0);
+    printf("INFO: win_create_rw() size=%d\n", whp->size);
     return 0;
 }
 
