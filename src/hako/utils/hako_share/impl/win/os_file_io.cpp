@@ -21,7 +21,7 @@ int  win_open_rw(const char* filepath, WinHandleType *whp)
         return -1;
     }
     whp->size = GetFileSize(whp->handle, 0);
-    printf("INFO: win_open_rw() size=%d\n", whp->size);
+    //printf("INFO: win_open_rw() size=%d\n", whp->size);
     return 0;
 }
 
@@ -50,7 +50,7 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
     win_pwrite(whp, bufp, whp->size, 0);
     free(bufp);
     whp->size = GetFileSize(whp->handle, 0);
-    printf("INFO: win_create_rw() size=%d\n", whp->size);
+    //printf("INFO: win_create_rw() size=%d\n", whp->size);
     return 0;
 }
 
