@@ -62,3 +62,35 @@ void win_close(WinHandleType *whp)
     CloseHandle(whp->handle);
     return;
 }
+
+void win_flock_acquire(WinHandleType *whp)
+{
+    LockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    return;
+}
+
+void win_flock_release(WinHandleType *whp)
+{
+    UnlockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    return;
+}
+int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
+{
+    DWORD rsize = 0;
+    (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
+    BOOL ret = WriteFile(whp->handle, buf, count, &rsize, 0);
+    if (ret == FALSE) {
+        return -1;
+    }
+    return 0;
+}
+int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset)
+{
+    DWORD rsize = 0;
+    (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
+    BOOL ret = ReadFile(whp->handle, buf, count, &rsize, 0);
+    if (ret == FALSE) {
+        return -1;
+    }
+    return 0;
+}
