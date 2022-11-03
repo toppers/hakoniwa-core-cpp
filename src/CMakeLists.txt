@@ -21,6 +21,7 @@ add_library(
     hako/core/rpc/hako_internal_rpc.cpp
     hako/utils/hako_share/impl/posix/hako_shared_memory_mmap.cpp
     #hako/utils/hako_share/impl/posix/hako_sem.cpp
+    hako/utils/hako_share/impl/${OS_TYPE}/os_file_io.cpp
     hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp
     hako/utils/hako_share/impl/${OS_TYPE}/hako_flock.cpp
     hako/utils/hako_share/impl/posix/hako_sem_flock.cpp
