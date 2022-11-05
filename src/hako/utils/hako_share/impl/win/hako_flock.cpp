@@ -98,19 +98,19 @@ void hako_flock_release(HakoFlockObjectType *handle)
 void hako_flock_write(HakoFlockObjectType *handle, int index, int value)
 {
     HakoFlockFileHandleObjectType *real;
-    real = (HakoFlockFileHandleObjectType*)handle->obj;    
+    real = (HakoFlockFileHandleObjectType*)handle->obj;
     ssize_t ret = win_pwrite(&real->fd, (const void *)&value, sizeof(value), (index * sizeof(value)));
     if (ret < 0) {
-        printf("ERROR: hako_flock_write() error=%d\n", errno);
+        printf("ERROR: hako_flock_write() returns error=%lld\n", ret);
     }
 }
 
 void hako_flock_read(HakoFlockObjectType *handle, int index, int *rvalue)
 {
     HakoFlockFileHandleObjectType *real;
-    real = (HakoFlockFileHandleObjectType*)handle->obj;    
+    real = (HakoFlockFileHandleObjectType*)handle->obj;
     ssize_t ret = win_pread(&real->fd, (void *)rvalue, sizeof(int), (index * sizeof(int)));
     if (ret < 0) {
-        printf("ERROR: hako_flock_write() error=%d\n", errno);
+        printf("ERROR: hako_flock_read() returns error=%lld\n", ret);
     }
 }

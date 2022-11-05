@@ -125,6 +125,6 @@ void hako_flock_read(HakoFlockObjectType *handle, int index, int *rvalue)
     real = (HakoFlockFileHandleObjectType*)handle->obj;    
     ssize_t ret = pread(real->fd, (void *)rvalue, sizeof(int), (index * sizeof(int)));
     if (ret < 0) {
-        printf("ERROR: hako_flock_write() error=%d\n", errno);
+        printf("ERROR: hako_flock_read() error=%d\n", errno);
     }
 }

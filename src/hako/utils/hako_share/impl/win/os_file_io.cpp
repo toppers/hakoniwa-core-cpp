@@ -78,13 +78,31 @@ void win_close(WinHandleType *whp)
 
 void win_flock_acquire(WinHandleType *whp)
 {
-    LockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    //BOOL ret = LockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    OVERLAPPED overlap;
+    memset((void*)&overlap, 0, sizeof(LPOVERLAPPED));
+    overlap.Offset = 0;
+    overlap.OffsetHigh = 0;
+    BOOL ret = LockFileEx(whp->handle, LOCKFILE_EXCLUSIVE_LOCK, 0, whp->size, 0, &overlap);
+    if (ret == FALSE) {
+        DWORD err = GetLastError();
+        printf("win_flock_acquire() error:%ld\n", err);
+    }
     return;
 }
 
 void win_flock_release(WinHandleType *whp)
 {
-    UnlockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    OVERLAPPED overlap;
+    memset((void*)&overlap, 0, sizeof(LPOVERLAPPED));
+    overlap.Offset = 0;
+    overlap.OffsetHigh = 0;
+    //BOOL ret = UnlockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+    BOOL ret = UnlockFileEx(whp->handle, 0, whp->size, 0, &overlap);
+    if (ret == FALSE) {
+        DWORD err = GetLastError();
+        printf("win_flock_release() error:%ld\n", err);
+    }
     return;
 }
 int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
@@ -93,7 +111,9 @@ int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
     (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
     BOOL ret = WriteFile(whp->handle, buf, count, &rsize, 0);
     if (ret == FALSE) {
-        return -1;
+        DWORD err = GetLastError();
+        printf("win_pwrite error:%ld\n", err);
+        return -err;
     }
     return 0;
 }
@@ -103,7 +123,9 @@ int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset)
     (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
     BOOL ret = ReadFile(whp->handle, buf, count, &rsize, 0);
     if (ret == FALSE) {
-        return -1;
+        DWORD err = GetLastError();
+        printf("win_pwrite error:%ld\n", err);
+        return -err;
     }
     return 0;
 }

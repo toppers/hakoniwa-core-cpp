@@ -31,18 +31,23 @@ static void hako_sem_load(void)
 }
 static int hako_sem_init(int index, int value)
 {
+    //pid_t pid = getpid();
+    //printf("sem_init[%lld]: acquire\n", pid);
     hako_flock_acquire(flock_handle);
     {
         hako_flock_write(flock_handle, index, value);
     }
     hako_flock_release(flock_handle);
+    //printf("sem_init[%lld]: release\n", pid);
     return 0;
 }
 
 static void hako_sem_down(int index)
 {
     int value;
+    //pid_t pid = getpid();
     hako_sem_load();
+    //printf("sem_down[%d][%lld]: acquire\n", index, pid);
     hako_flock_acquire(flock_handle);
     while (true) {
         hako_flock_read(flock_handle, index, &value);
@@ -51,27 +56,33 @@ static void hako_sem_down(int index)
             break;
         }
         hako_flock_release(flock_handle);
+        //printf("sem_down[%d][%lld]: tmp release\n", index, pid);
 #ifdef WIN32
         //https://learn.microsoft.com/ja-jp/windows/win32/api/synchapi/nf-synchapi-sleep
         Sleep(500);
 #else
         usleep(500*1000);
 #endif
+        //printf("sem_down[%d][%lld]: tmp acquire\n", index, pid);
         hako_flock_acquire(flock_handle);
     }
     hako_flock_release(flock_handle);
+    //printf("sem_down[%d][%lld]: release\n", index, pid);
     return;
 }
 static void hako_sem_up(int index)
 {
     int value;
+    //pid_t pid = getpid();
     hako_sem_load();
+    //printf("sem_up[%d][%lld]: acquire\n", index, pid);
     hako_flock_acquire(flock_handle);
     {
         hako_flock_read(flock_handle, index, &value);
         hako_flock_write(flock_handle, index, ++value);
     }
     hako_flock_release(flock_handle);
+    //printf("sem_up[%d][%lld]: release\n", index, pid);
     return;
 }
 
