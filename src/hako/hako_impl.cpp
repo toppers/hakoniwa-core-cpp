@@ -2,7 +2,7 @@
 #include "hako_master_impl.hpp"
 #include "hako_asset_impl.hpp"
 #include "hako_simevent_impl.hpp"
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 #include "core/context/hako_context.hpp"
 
 static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
@@ -93,6 +93,7 @@ void hako::logger::init(const std::string &id)
         //nothing to do;
     }
 }
+#if 0
 std::shared_ptr<spdlog::logger> hako::logger::get(const std::string &id)
 {
     if (id.c_str() != nullptr) {
@@ -101,3 +102,4 @@ std::shared_ptr<spdlog::logger> hako::logger::get(const std::string &id)
     //return hako::utils::logger::get(id);
     return nullptr;
 }
+#endif

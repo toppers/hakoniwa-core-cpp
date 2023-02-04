@@ -1,5 +1,5 @@
 #include "hako_simevent_impl.hpp"
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 #include "core/rpc/hako_internal_rpc.hpp"
 
 HakoSimulationStateType hako::HakoSimulationEventController::state()

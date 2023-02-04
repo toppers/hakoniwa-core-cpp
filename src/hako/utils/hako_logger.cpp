@@ -1,9 +1,11 @@
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 
-#include "spdlog/sinks/basic_file_sink.h"
+//#include "spdlog/sinks/basic_file_sink.h"
 
+#if 0
 void hako::utils::logger::init(const std::string &id)
 {
+#if 0
     char logdir_path[4096];
     sprintf(logdir_path, "%s/", HAKO_LOGGER_DIRPATH);
 #ifdef WIN32 
@@ -17,9 +19,11 @@ void hako::utils::logger::init(const std::string &id)
     spdlog::basic_logger_mt(id, logfile_path);
     spdlog::flush_every(std::chrono::seconds(1));
     spdlog::get(id)->info("hako logger[{0}] initialized", id);
+#endif
     return;
 }
-
+#endif
+#if 0
 std::shared_ptr<spdlog::logger> hako::utils::logger::get(const std::string &id)
 {
     if (id.c_str() != nullptr) {
@@ -28,3 +32,4 @@ std::shared_ptr<spdlog::logger> hako::utils::logger::get(const std::string &id)
     //return spdlog::get(id);
     return nullptr;
 }
+#endif

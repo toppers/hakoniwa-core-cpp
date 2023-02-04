@@ -3,7 +3,6 @@ set(HAKO_CMAKE_VERSION ${HAKO_CMAKE_VERSION})
 project(hakoniwa-core
     LANGUAGES C CXX
 )
-find_package(spdlog REQUIRED)
 
 set(OS_TYPE "posix")
 if(WIN32)
@@ -43,4 +42,3 @@ target_include_directories(
     PRIVATE ${PROJECT_SOURCE_DIR}/../third-party/json/single_include
 )
 
-target_link_libraries(hako PRIVATE spdlog::spdlog)

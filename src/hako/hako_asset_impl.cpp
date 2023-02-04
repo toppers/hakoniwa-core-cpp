@@ -1,5 +1,5 @@
 #include "hako_asset_impl.hpp"
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 #include "utils/hako_clock.hpp"
 
 bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, AssetCallbackType &callbacks)

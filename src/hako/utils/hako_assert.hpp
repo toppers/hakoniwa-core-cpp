@@ -2,7 +2,7 @@
 #define _HAKO_ASSERT_HPP_
 
 #include "types/hako_types.hpp"
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 
 
 #if !defined(NDEBUG)

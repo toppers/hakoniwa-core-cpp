@@ -5,7 +5,6 @@ project(hakoniwa-core
 )
 
 find_package(GTest REQUIRED)
-find_package(spdlog REQUIRED)
 
 include(GoogleTest)
 
@@ -28,7 +27,6 @@ target_link_libraries(hako-test
     hako
     -pthread
     GTest::GTest
-    spdlog::spdlog
 )
 
 gtest_add_tests(TARGET hako-test)

@@ -4,7 +4,6 @@ project(hakoniwa-command
     LANGUAGES C CXX
 )
 
-find_package(spdlog REQUIRED)
 
 add_executable(
     hako-cmd
@@ -15,7 +14,6 @@ target_link_libraries(
     hako-cmd 
     hako
     -pthread
-    spdlog::spdlog
 )
 
 #message(STATUS "HAKO_INTERFACE_DIR=" ${HAKO_INTERFACE_DIR})

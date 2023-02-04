@@ -1,7 +1,7 @@
 #include "utils/hako_share/hako_sem.hpp"
 #include "utils/hako_share/impl/hako_flock.hpp"
 #include "utils/hako_config_loader.hpp"
-#include "utils/hako_logger.hpp"
+//#include "utils/hako_logger.hpp"
 #include "utils/hako_assert.hpp"
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1

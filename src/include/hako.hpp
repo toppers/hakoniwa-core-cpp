@@ -4,7 +4,7 @@
 #include "hako_master.hpp"
 #include "hako_asset.hpp"
 #include "hako_simevent.hpp"
-#include "spdlog/spdlog.h"
+//#include "spdlog/spdlog.h"
 
 namespace hako {
     void init();
@@ -15,7 +15,7 @@ namespace hako {
 
     namespace logger {
         void init(const std::string &id);
-        std::shared_ptr<spdlog::logger> get(const std::string &id);
+        //std::shared_ptr<spdlog::logger> get(const std::string &id);
     }
 }
 
