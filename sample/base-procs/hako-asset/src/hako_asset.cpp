@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <iostream>
+#include <string.h>
 
 static std::string *asset_name = nullptr;
 static bool hako_asset_is_end = false;
