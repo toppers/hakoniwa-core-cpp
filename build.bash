@@ -21,10 +21,15 @@ then
 fi
 
 OS_TYPE="posix"
-uname -a | grep Linux > /dev/null
-if [ $? -ne 0 ]
+if [ `uname` = "Darwin" ]
 then
-    OS_TYPE="win"
+    :
+else
+    uname -a | grep Linux > /dev/null
+    if [ $? -ne 0 ]
+    then
+        OS_TYPE="win"
+    fi
 fi
 
 cd cmake-build

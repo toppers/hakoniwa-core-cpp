@@ -82,7 +82,7 @@ namespace hako::data {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return false;
             }
-            else if (len != this->pdu_meta_data_->channel[channel_id].size) {
+            else if (len > this->pdu_meta_data_->channel[channel_id].size) {
                 return false;
             }
             else if (this->pdu_ == nullptr) {
@@ -108,7 +108,7 @@ namespace hako::data {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return false;
             }
-            else if (len != this->pdu_meta_data_->channel[channel_id].size) {
+            else if (len > this->pdu_meta_data_->channel[channel_id].size) {
                 return false;
             }
             else if (this->pdu_ == nullptr) {
