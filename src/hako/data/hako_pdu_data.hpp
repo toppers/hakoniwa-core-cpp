@@ -51,6 +51,8 @@ namespace hako::data {
                 ret = false;
             }
             else if (this->pdu_meta_data_->channel[new_channel_id].size == 0) {
+                hako::utils::hako_string2fixed(asset_name, this->pdu_meta_data_->channel_map[new_channel_id].asset_name);
+                this->pdu_meta_data_->channel_map[new_channel_id].logical_channel_id = channel_id;
                 this->pdu_meta_data_->channel[new_channel_id].size = size;
                 std::cout << "INFO: " << asset_name << " create_lchannel: logical_id=" << channel_id << " real_id=" << new_channel_id << " size=" << size << std::endl;
                 this->pdu_meta_data_->channel_num++;
