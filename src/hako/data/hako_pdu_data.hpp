@@ -37,6 +37,45 @@ namespace hako::data {
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             return ret;
         }
+        bool create_lchannel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t size)
+        {
+            bool ret = true;
+            if (asset_name.length() >= HAKO_FIXED_STRLEN_MAX) {
+                printf("ERROR: asset_name length(%ld) is over max(%d)\n", asset_name.length(), HAKO_FIXED_STRLEN_MAX);
+                return false;
+            }
+            this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            auto new_channel_id = this->pdu_meta_data_->channel_num;
+            if (new_channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                printf("ERROR: pdu chanel is full\n");
+                ret = false;
+            }
+            else if (this->pdu_meta_data_->channel[new_channel_id].size == 0) {
+                this->pdu_meta_data_->channel[new_channel_id].size = size;
+                std::cout << "INFO: " << asset_name << " create_lchannel: logical_id=" << channel_id << " real_id=" << new_channel_id << " size=" << size << std::endl;
+                this->pdu_meta_data_->channel_num++;
+                ret = true;
+            }
+            this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            return ret;
+        }
+        HakoPduChannelIdType get_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id)
+        {
+            for (int i = 0; i < this->pdu_meta_data_->channel_num; i++) {
+                HakoPduChannelMapType &entry = this->pdu_meta_data_->channel_map[i];
+                if (entry.logical_channel_id != channel_id) {
+                    continue;
+                }
+                else if (entry.asset_name.len != asset_name.length()) {
+                    continue;
+                }
+                else if (strncmp(entry.asset_name.data, asset_name.c_str(), entry.asset_name.len) != 0) {
+                    continue;
+                }
+                return i;
+            }
+            return -1;
+        }
         bool is_pdu_dirty(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
             if (this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] != this->pdu_meta_data_->pdu_write_version[channel_id])

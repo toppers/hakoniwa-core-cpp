@@ -43,7 +43,7 @@ int main(int argc, const char* argv[])
     hako_status.push_back("terminated");
 
     if ((argc == 1) || (argc > 4)) {
-        printf("Usage: %s {start|stop|reset|status|dump <cid>|restore <cid> <bin>}\n", argv[0]);
+        printf("Usage: %s {start|stop|reset|status|dump <cid>|restore <cid> <bin>}|real_cid <asset_name> <cid>\n", argv[0]);
         return 1;
     }
     signal(SIGINT, hako_cmd_signal_handler);
@@ -151,6 +151,12 @@ int main(int argc, const char* argv[])
             free(pdu_data);
             return 1;
         }
+    }
+    else if (cmd == "real_cid") {
+        std::string asset_name = argv[2];
+        channel_id = atoi(argv[3]);
+        auto real_cid = hako_sim_ctrl->get_pdu_channel(asset_name, channel_id);
+        printf("%d\n", real_cid);
     }
     else {
         printf("error\n");

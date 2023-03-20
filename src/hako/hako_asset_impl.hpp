@@ -37,6 +37,8 @@ namespace hako {
          * PDU APIs
          */
         bool create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_size);
+        bool create_pdu_lchannel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t pdu_size);
+        HakoPduChannelIdType get_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id);
         bool is_pdu_dirty(const std::string& asset_name, HakoPduChannelIdType channel_id);
         bool write_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
         bool read_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len);

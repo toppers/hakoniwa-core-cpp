@@ -50,6 +50,11 @@ namespace hako::data {
     } HakoPduChannelType;
 
     typedef struct {
+        HakoFixedStringType asset_name;
+        HakoPduChannelIdType logical_channel_id;
+    } HakoPduChannelMapType;
+
+    typedef struct {
         char    data[8U];
     } HakoPduChannelDataType;
 
@@ -74,6 +79,10 @@ namespace hako::data {
          */
         uint32_t            pdu_read_version[HAKO_DATA_MAX_ASSET_NUM][HAKO_PDU_CHANNEL_MAX];
         uint32_t            pdu_write_version[HAKO_PDU_CHANNEL_MAX];
+        /*
+         * logical pdu channel management
+         */
+        HakoPduChannelMapType channel_map[HAKO_PDU_CHANNEL_MAX];
     } HakoPduMetaDataType;
 }
 

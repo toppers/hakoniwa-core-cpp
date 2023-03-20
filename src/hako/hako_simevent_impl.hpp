@@ -30,6 +30,7 @@ namespace hako {
         /*
          * PDU inspectors
          */
+        HakoPduChannelIdType get_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id);
         virtual bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
         virtual bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
         virtual size_t pdu_size(HakoPduChannelIdType channel_id);

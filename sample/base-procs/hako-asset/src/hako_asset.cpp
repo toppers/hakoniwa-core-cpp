@@ -60,7 +60,7 @@ int main(int argc, const char* argv[])
         std::cout << "ERROR: Not found hako-master on this PC" << std::endl;
         return 1;
     }
-    hako_asset->create_pdu_channel(1, 100);
+    hako_asset->create_pdu_lchannel(asset_name_str, 1, 100);
     AssetCallbackType callback;
     callback.reset = reset_callback;
     callback.start = start_callback;
