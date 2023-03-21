@@ -37,11 +37,11 @@ namespace hako::data {
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             return ret;
         }
-        bool create_lchannel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t size)
+        bool create_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t size)
         {
             bool ret = true;
-            if (asset_name.length() >= HAKO_FIXED_STRLEN_MAX) {
-                printf("ERROR: asset_name length(%ld) is over max(%d)\n", asset_name.length(), HAKO_FIXED_STRLEN_MAX);
+            if (robo_name.length() >= HAKO_FIXED_STRLEN_MAX) {
+                printf("ERROR: robo_name length(%ld) is over max(%d)\n", robo_name.length(), HAKO_FIXED_STRLEN_MAX);
                 return false;
             }
             this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
@@ -51,27 +51,27 @@ namespace hako::data {
                 ret = false;
             }
             else if (this->pdu_meta_data_->channel[new_channel_id].size == 0) {
-                hako::utils::hako_string2fixed(asset_name, this->pdu_meta_data_->channel_map[new_channel_id].asset_name);
+                hako::utils::hako_string2fixed(robo_name, this->pdu_meta_data_->channel_map[new_channel_id].robo_name);
                 this->pdu_meta_data_->channel_map[new_channel_id].logical_channel_id = channel_id;
                 this->pdu_meta_data_->channel[new_channel_id].size = size;
-                std::cout << "INFO: " << asset_name << " create_lchannel: logical_id=" << channel_id << " real_id=" << new_channel_id << " size=" << size << std::endl;
+                std::cout << "INFO: " << robo_name << " create_lchannel: logical_id=" << channel_id << " real_id=" << new_channel_id << " size=" << size << std::endl;
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             return ret;
         }
-        HakoPduChannelIdType get_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id)
+        HakoPduChannelIdType get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)
         {
             for (int i = 0; i < this->pdu_meta_data_->channel_num; i++) {
                 HakoPduChannelMapType &entry = this->pdu_meta_data_->channel_map[i];
                 if (entry.logical_channel_id != channel_id) {
                     continue;
                 }
-                else if (entry.asset_name.len != asset_name.length()) {
+                else if (entry.robo_name.len != robo_name.length()) {
                     continue;
                 }
-                else if (strncmp(entry.asset_name.data, asset_name.c_str(), entry.asset_name.len) != 0) {
+                else if (strncmp(entry.robo_name.data, robo_name.c_str(), entry.robo_name.len) != 0) {
                     continue;
                 }
                 return i;

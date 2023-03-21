@@ -85,14 +85,14 @@ int main(int argc, const char* argv[])
                 hako_asset_time_usec += delta_usec;
             }
             char tmp[100];
-            hako_asset->read_pdu(asset_name_str, 1, tmp, 100);
+            hako_asset->read_pdu(asset_name_str, asset_name_str, 1, tmp, 100);
             hako_asset->notify_read_pdu_done(asset_name_str);
             //printf("TIME: W:%ld A:%ld\n", world_time, hako_asset_time_usec);
             std::cout << "TIME: W:" << world_time << " A: " << hako_asset_time_usec << std::endl;
             printf("buf:%s pdu:%s\n", buf, tmp);
         }
         else if (hako_asset->is_pdu_sync_mode(asset_name_str)) {
-            hako_asset->write_pdu(asset_name_str, 1, buf, 100);
+            hako_asset->write_pdu(asset_name_str, asset_name_str, 1, buf, 100);
             hako_asset->notify_write_pdu_done(asset_name_str);
         }
 

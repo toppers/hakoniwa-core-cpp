@@ -127,18 +127,18 @@ bool hako::HakoAssetControllerImpl::create_pdu_channel(HakoPduChannelIdType chan
 {
     return this->master_data_->get_pdu_data()->create_channel(channel_id, pdu_size);
 }
-bool hako::HakoAssetControllerImpl::create_pdu_lchannel(const std::string& asset_name, HakoPduChannelIdType channel_id, size_t pdu_size)
+bool hako::HakoAssetControllerImpl::create_pdu_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t pdu_size)
 {
-    return this->master_data_->get_pdu_data()->create_lchannel(asset_name, channel_id, pdu_size);
+    return this->master_data_->get_pdu_data()->create_lchannel(robo_name, channel_id, pdu_size);
 }
-HakoPduChannelIdType hako::HakoAssetControllerImpl::get_pdu_channel(const std::string& asset_name, HakoPduChannelIdType channel_id)
+HakoPduChannelIdType hako::HakoAssetControllerImpl::get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)
 {
-    return this->master_data_->get_pdu_data()->get_pdu_channel(asset_name, channel_id);
+    return this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
 }
-bool hako::HakoAssetControllerImpl::is_pdu_dirty(const std::string& asset_name, HakoPduChannelIdType channel_id)
+bool hako::HakoAssetControllerImpl::is_pdu_dirty(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id)
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
-    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(asset_name, channel_id);
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
     if (real_id >= 0) {
         return this->master_data_->get_pdu_data()->is_pdu_dirty(asset->id, real_id);
     }
@@ -147,14 +147,14 @@ bool hako::HakoAssetControllerImpl::is_pdu_dirty(const std::string& asset_name, 
     }
 }
 
-bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
+bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
         //hako::utils::logger::get("core")->info("write_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
-    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(asset_name, channel_id);
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
     if (real_id >= 0) {
         return this->master_data_->get_pdu_data()->write_pdu(real_id, pdu_data, len);
     }
@@ -163,14 +163,14 @@ bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, Hak
     }
 }
 
-bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
 {
     auto* asset = this->master_data_->get_asset_nolock(asset_name);
     if (asset == nullptr) {
         //hako::utils::logger::get("core")->info("read_pdu: can not find asset[{0}]", asset_name);
         return false;
     }
-    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(asset_name, channel_id);
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
     if (real_id >= 0) {
         return this->master_data_->get_pdu_data()->read_pdu(asset->id, real_id, pdu_data, len);
     }

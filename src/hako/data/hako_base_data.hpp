@@ -50,7 +50,7 @@ namespace hako::data {
     } HakoPduChannelType;
 
     typedef struct {
-        HakoFixedStringType asset_name;
+        HakoFixedStringType robo_name;
         HakoPduChannelIdType logical_channel_id;
     } HakoPduChannelMapType;
 
