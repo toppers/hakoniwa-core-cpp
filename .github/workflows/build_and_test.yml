@@ -1,4 +1,4 @@
-name: Hakoniwa-core
+name: Hakoniwa-core-cpp
 on:
   push:
     branches:
@@ -18,5 +18,7 @@ jobs:
 
     - name: Build and Test
       run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtest-dev
         bash ./build.bash test
       shell: bash
