@@ -1,0 +1,22 @@
+name: Hakoniwa-core
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.13
+
+    - uses: actions/checkout@v3
+
+    - name: Get DateTime
+      id: date
+      run: echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+    - name: Build and Test
+      run: |
+        bash ./build.bash test
+      shell: bash
