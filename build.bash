@@ -32,6 +32,7 @@ else
     fi
 fi
 
+mkdir -p cmake-build
 cd cmake-build
 if [ ${OPT} = "test" ]
 then
