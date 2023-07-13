@@ -235,12 +235,16 @@ namespace hako::data {
                 return;
             }
             this->pdu_meta_data_->asset_pdu_check_status[asset_id] = true;
+            int count = 0;
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
-                if (this->pdu_meta_data_->asset_pdu_check_status[i] == false) {
-                    return;
+
+                if (this->pdu_meta_data_->asset_pdu_check_status[i] == true) {
+                    count++;
                 }
             }
-            this->pdu_meta_data_->mode = HakoTimeMode_Master;
+            if (count >= this->pdu_meta_data_->asset_num) {
+                this->pdu_meta_data_->mode = HakoTimeMode_Master;
+            }
         }
         bool is_pdu_sync_mode(HakoAssetIdType asset_id)
         {
