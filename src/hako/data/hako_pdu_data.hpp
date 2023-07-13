@@ -220,7 +220,7 @@ namespace hako::data {
 
         void notify_read_pdu_done(HakoAssetIdType asset_id)
         {
-            if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
+            if (asset_id >= HAKO_DATA_MAX_ASSET_NUM) {
                 return;
             }
             /* NOP */
@@ -228,7 +228,7 @@ namespace hako::data {
         }
         void notify_write_pdu_done(HakoAssetIdType asset_id)
         {
-            if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
+            if (asset_id >= HAKO_DATA_MAX_ASSET_NUM) {
                 return;
             }
             if (this->pdu_meta_data_->mode == HakoTimeMode_Master) {
@@ -248,7 +248,7 @@ namespace hako::data {
         }
         bool is_pdu_sync_mode(HakoAssetIdType asset_id)
         {
-            if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
+            if (asset_id >= HAKO_DATA_MAX_ASSET_NUM) {
                 return false;
             }
             if (this->pdu_meta_data_->mode == HakoTimeMode_Master) {
