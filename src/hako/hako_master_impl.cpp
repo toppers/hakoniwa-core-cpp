@@ -36,17 +36,6 @@ bool hako::HakoMasterControllerImpl::execute()
     this->master_data_->get_asset_times(asset_times);
     auto world_time = this->theWorld_->time_begins_to_move(asset_times);
     if (world_time > prev_world_time) {
-        //this->master_data_->lock();
-        auto& timeset = this->master_data_->ref_time_nolock();
-        timeset.current = world_time;
-        //this->master_data_->unlock();
-
-        /*
-         * comment out try_pdu_mode_state_change() call because of process context switch overhead is too big!!!
-         * instead of this approach, pdu atomicity is guaranteed for try write/read using busy flag.
-         */
-        //this->master_data_->get_pdu_data()->try_pdu_mode_state_change();
-        //hako::utils::logger::get("core")->info("move: world_time={0}", world_time);
         return true;
     }
     else {

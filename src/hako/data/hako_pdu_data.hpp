@@ -223,7 +223,7 @@ namespace hako::data {
             if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
                 return;
             }
-            this->pdu_meta_data_->asset_pdu_check_status[asset_id] = true;
+            /* NOP */
             return;
         }
         void notify_write_pdu_done(HakoAssetIdType asset_id)
@@ -231,26 +231,26 @@ namespace hako::data {
             if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
                 return;
             }
-            HakoAssetIdType next_id = asset_id + 1;
-            if (next_id == this->pdu_meta_data_->asset_num) {
-                next_id = 0;
+            if (this->pdu_meta_data_->mode == HakoTimeMode_Master) {
+                return;
             }
-            this->pdu_meta_data_->asset_pdu_check_status[asset_id] = false;
-            this->pdu_meta_data_->pdu_sync_asset_id = next_id;
-            if (next_id == 0) {
-                this->pdu_meta_data_->mode = HakoTimeMode_Master;
+            this->pdu_meta_data_->asset_pdu_check_status[asset_id] = true;
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                if (this->pdu_meta_data_->asset_pdu_check_status[i] == false) {
+                    return;
+                }
             }
-            return;
+            this->pdu_meta_data_->mode = HakoTimeMode_Master;
         }
         bool is_pdu_sync_mode(HakoAssetIdType asset_id)
         {
+            if (asset_id >= HAKO_PDU_CHANNEL_MAX) {
+                return false;
+            }
             if (this->pdu_meta_data_->mode == HakoTimeMode_Master) {
                 return false;
             }
-            else if (this->pdu_meta_data_->pdu_sync_asset_id != asset_id) {
-                return false;
-            }
-            return true;
+            return !(this->pdu_meta_data_->asset_pdu_check_status[asset_id]);
         }
         bool is_simulation_mode()
         {
@@ -258,21 +258,6 @@ namespace hako::data {
                 return true;
             }
             return false;
-        }
-        /*
-         * for master api
-         */
-        void try_pdu_mode_state_change()
-        {
-            for (int i = 0; i < this->pdu_meta_data_->asset_num; i++) {
-                if (this->pdu_meta_data_->asset_pdu_check_status[i] == false) {
-                    return;
-                }
-            }
-            for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
-                this->pdu_meta_data_->is_dirty[i] = false;
-            }
-            this->pdu_meta_data_->mode = HakoTimeMode_Asset;
         }
         /*
          * for master api
