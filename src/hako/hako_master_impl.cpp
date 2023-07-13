@@ -36,6 +36,8 @@ bool hako::HakoMasterControllerImpl::execute()
     this->master_data_->get_asset_times(asset_times);
     auto world_time = this->theWorld_->time_begins_to_move(asset_times);
     if (world_time > prev_world_time) {
+        auto& timeset = this->master_data_->ref_time_nolock();
+        timeset.current = world_time;
         return true;
     }
     else {
