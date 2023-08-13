@@ -39,6 +39,7 @@ namespace hako {
          * debug apis
          */
         void print_master_data();
+        void print_memory_log();
         /*
          * event monitor
          */

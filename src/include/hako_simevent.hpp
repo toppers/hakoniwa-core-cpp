@@ -29,6 +29,7 @@ namespace hako {
          * debug apis
          */
         virtual void print_master_data() = 0;
+        virtual void print_memory_log() = 0;
     };
 }
 

@@ -4,6 +4,7 @@
 #include "hako_simevent_impl.hpp"
 //#include "utils/hako_logger.hpp"
 #include "core/context/hako_context.hpp"
+#include "hako_log.hpp"
 
 static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
 static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
@@ -86,20 +87,13 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     return simevent_ptr;
 }
 
-void hako::logger::init(const std::string &id)
+void hako::log::add(const char* level, const char* file, int line, const char* function, const char* format, ...)
 {
-    //hako::utils::logger::init(id);
-    if (id.c_str() != nullptr) {
-        //nothing to do;
-    }
+    if (!master_data_ptr) {
+        return;
+    }    
+    va_list args;
+    va_start(args, format);
+    master_data_ptr->add_log_internal(level, file, line, function, format, args);    
+    va_end(args);
 }
-#if 0
-std::shared_ptr<spdlog::logger> hako::logger::get(const std::string &id)
-{
-    if (id.c_str() != nullptr) {
-        //nothing to do
-    }
-    //return hako::utils::logger::get(id);
-    return nullptr;
-}
-#endif

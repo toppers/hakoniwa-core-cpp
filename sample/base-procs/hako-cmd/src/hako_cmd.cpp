@@ -43,7 +43,7 @@ int main(int argc, const char* argv[])
     hako_status.push_back("terminated");
 
     if ((argc == 1) || (argc > 4)) {
-        printf("Usage: %s {start|stop|reset|status|pmeta|dump <cid>|restore <cid> <bin>}|real_cid <asset_name> <cid>\n", argv[0]);
+        printf("Usage: %s {start|stop|reset|status|pmeta|plog|dump <cid>|restore <cid> <bin>}|real_cid <asset_name> <cid>\n", argv[0]);
         return 1;
     }
     signal(SIGINT, hako_cmd_signal_handler);
@@ -160,6 +160,9 @@ int main(int argc, const char* argv[])
     }
     else if (cmd == "pmeta") {
         hako_sim_ctrl->print_master_data();
+    }
+    else if (cmd == "plog") {
+        hako_sim_ctrl->print_memory_log();
     }
     else {
         printf("error\n");

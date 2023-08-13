@@ -84,6 +84,11 @@ namespace hako::data {
          */
         HakoPduChannelMapType channel_map[HAKO_PDU_CHANNEL_MAX];
     } HakoPduMetaDataType;
+
+    typedef struct {
+        int index;
+        char data[HAKO_LOGGER_LOGNUM][HAKO_LOGGER_ENTRYSIZE];
+    } HakoLogDataType;
 }
 
 #endif /* _HAKO_BASE_DATA_HPP_ */

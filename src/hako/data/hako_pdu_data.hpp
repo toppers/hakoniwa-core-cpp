@@ -5,6 +5,7 @@
 #include "utils/hako_share/hako_shared_memory.hpp"
 #include <string.h>
 #include <iostream>
+#include "hako_log.hpp"
 
 namespace hako::data {
     class HakoPduData {
@@ -35,6 +36,7 @@ namespace hako::data {
                 ret = true;
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            HAKO_LOG_INFO("channel_id = %d size = %d ret = %d", channel_id, size, ret);
             return ret;
         }
         bool create_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t size)
@@ -59,6 +61,7 @@ namespace hako::data {
                 ret = true;
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            HAKO_LOG_INFO("robo_name = %s channel_id = %d size = %d ret = %d", robo_name.c_str(), channel_id, size, ret);
             return ret;
         }
         HakoPduChannelIdType get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)
@@ -121,9 +124,11 @@ namespace hako::data {
         {
             //printf("write_pdu: channel_id=%d len=%zu size=%zu\n", channel_id, len, this->pdu_meta_data_->channel[channel_id].size);
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                HAKO_LOG_ERROR("channel_id >= MAX(%d) channel_id = %d len = %d", HAKO_PDU_CHANNEL_MAX, channel_id, len);
                 return false;
             }
             else if (len > this->pdu_meta_data_->channel[channel_id].size) {
+                HAKO_LOG_ERROR("len > channel_size(%d) channel_id = %d len = %d", this->pdu_meta_data_->channel[channel_id].size, channel_id, len);
                 return false;
             }
             else if (this->pdu_ == nullptr) {
@@ -147,9 +152,11 @@ namespace hako::data {
         bool read_pdu(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                HAKO_LOG_ERROR("channel_id >= MAX(%d) channel_id = %d len = %d", HAKO_PDU_CHANNEL_MAX, channel_id, len);
                 return false;
             }
             else if (len > this->pdu_meta_data_->channel[channel_id].size) {
+                HAKO_LOG_ERROR("len > channel_size(%d) channel_id = %d len = %d", this->pdu_meta_data_->channel[channel_id].size, channel_id, len);
                 return false;
             }
             else if (this->pdu_ == nullptr) {
@@ -268,15 +275,18 @@ namespace hako::data {
          */
         void create(uint32_t asset_num)
         {
+            HAKO_LOG_INFO("PDU CREATE: asset_num = %d", asset_num);
             if (this->pdu_ != nullptr) {
                 this->pdu_meta_data_->asset_num = asset_num;
                 this->pdu_meta_data_->mode = HakoTimeMode_Asset;
                 std::cout << "ALREADY CREATED PDU DATA" << std::endl;
+                HAKO_LOG_INFO("ALREADY CREATED PDU DATA");
                 return;
             }
             this->pdu_meta_data_->mode = HakoTimeMode_Asset;
 
             ssize_t total_size = this->pdu_total_size();
+            HAKO_LOG_INFO("START CREATE PDU DATA: total_size= = %d", total_size);
             std::cout << "START CREATE PDU DATA: total_size= " << total_size << std::endl;
             auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             HAKO_ASSERT(shmid >= 0);
@@ -294,12 +304,14 @@ namespace hako::data {
             this->asset_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
             std::cout << "PDU DATA CREATED" << std::endl;
             printf("CREATED ADDR=%p\n", datap);
+            HAKO_LOG_INFO("CREATED ADDR=%p", datap);
         }
         /*
          * for master api
          */
         void reset()
         {
+            HAKO_LOG_INFO("RESET EVENT OCCURED");
             std::cout << "EVENT: reset" << std::endl;
             (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             {
@@ -351,6 +363,7 @@ namespace hako::data {
             if (is_debug) {
                 std::cout << "LOADED: PDU DATA" << std::endl;
             }
+            HAKO_LOG_INFO("LOADED PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
             return true;
         }

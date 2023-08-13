@@ -25,6 +25,11 @@ namespace hako::data {
          * PDU MetaData
          */
         HakoPduMetaDataType     pdu_meta_data;
+
+        /*
+         * MEMORY LOG
+         */
+        HakoLogDataType log;
     } HakoMasterDataType;
 
     class HakoMasterData {
@@ -353,6 +358,40 @@ namespace hako::data {
             for (int i = 0; i < this->master_datap_->pdu_meta_data.channel_num; i++) {
                 std::cout << "pdu_meta_data.channel_map[" << i << "].robo_name = " << std::string(this->master_datap_->pdu_meta_data.channel_map[i].robo_name.data) << std::endl;
                 std::cout << "pdu_meta_data.channel_map[" << i << "].logical_channel_id = " << this->master_datap_->pdu_meta_data.channel_map[i].logical_channel_id << std::endl;
+            }
+        }
+        void add_log(const char* format, ...)
+        {
+            HAKO_ASSERT(this->master_datap_ != nullptr);
+            if (this->master_datap_->log.index >= HAKO_LOGGER_LOGNUM) {
+                return;
+            }
+            this->lock();
+            int index = this->master_datap_->log.index;
+            this->master_datap_->log.index++;
+            this->unlock();
+
+            va_list args;
+            va_start(args, format);
+            int written = vsnprintf(this->master_datap_->log.data[index], HAKO_LOGGER_ENTRYSIZE, format, args);
+            va_end(args);
+            if (written >= HAKO_LOGGER_ENTRYSIZE) {
+                std::cerr << "Warning: Log message truncated to fit " << HAKO_LOGGER_ENTRYSIZE << " byte limit.\n";
+            }
+        }
+        void add_log_internal(const char* level, const char* file, int line, const char* function, const char* format, ...) {
+            char new_format[1024]; // 新しいフォーマットのためのバッファ
+            snprintf(new_format, sizeof(new_format), "%s [%s:%d %s] %s", level, file, line, function, format);
+            va_list args;
+            va_start(args, format);
+            add_log(new_format, args);
+            va_end(args);
+        }
+        void print_log()
+        {
+            HAKO_ASSERT(this->master_datap_ != nullptr);
+            for (int i = 0; i < this->master_datap_->log.index; i++) {
+                std::cout << std::string(this->master_datap_->log.data[i]) << std::endl;
             }
         }
     private:

@@ -12,7 +12,9 @@
 #define HAKO_LOGGER_DIRPATH             "./log/"
 #define HAKO_LOGGER_FILE_PREFIX         "hako-"
 #define HAKO_LOGGER_FILE_EXTENSION      ".log"
+#define HAKO_LOGGER_ENTRYSIZE   256
 #define HAKO_LOGGER_MAXSIZE     (1024 * 1024 * 5)
+#define HAKO_LOGGER_LOGNUM      (HAKO_LOGGER_MAXSIZE / HAKO_LOGGER_ENTRYSIZE)
 #define HAKO_LOGGER_ROTNUM      3
 
 #define HAKO_PDU_CHANNEL_MAX        256
