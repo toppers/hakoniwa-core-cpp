@@ -36,6 +36,10 @@ namespace hako {
         virtual size_t pdu_size(HakoPduChannelIdType channel_id);
 
         /*
+         * debug apis
+         */
+        void print_master_data();
+        /*
          * event monitor
          */
         void do_event_handling();

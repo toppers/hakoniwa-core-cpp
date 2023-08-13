@@ -24,6 +24,11 @@ namespace hako {
         virtual bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len) = 0;
         virtual bool read_pdu(HakoPduChannelIdType channel_id, char *pdu_data, size_t len) = 0;
         virtual size_t pdu_size(HakoPduChannelIdType channel_id) = 0;
+
+        /*
+         * debug apis
+         */
+        virtual void print_master_data() = 0;
     };
 }
 

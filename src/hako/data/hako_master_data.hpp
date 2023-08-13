@@ -316,6 +316,45 @@ namespace hako::data {
         {
             this->pdu_datap_->create(this->master_datap_->asset_num);
         }
+        void print_master_data()
+        {
+            std::cout << "master_pid = " << this->master_datap_->master_pid << std::endl;
+            std::cout << "state = " << this->master_datap_->state << std::endl;
+            std::cout << "time_usec = " << this->master_datap_->time_usec.current << std::endl;
+            std::cout << "asset_num = " << this->master_datap_->asset_num << std::endl;
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                std::cout << "assets[" << i << "].id = " << this->master_datap_->assets[i].id << std::endl;
+                std::cout << "assets[" << i << "].type = " << this->master_datap_->assets[i].type << std::endl;
+                if (this->master_datap_->assets[i].type != HakoAsset_Unknown) {
+                    std::cout << "assets[" << i << "].name = " << std::string(this->master_datap_->assets[i].name.data) << std::endl;
+                    std::cout << "assets_ev[" << i << "].pid = " << this->master_datap_->assets_ev[i].pid << std::endl;
+                    std::cout << "assets_ev[" << i << "].ctime = " << this->master_datap_->assets_ev[i].ctime << std::endl;
+                    std::cout << "assets_ev[" << i << "].update_time = " << this->master_datap_->assets_ev[i].update_time << std::endl;
+                    std::cout << "assets_ev[" << i << "].event = " << this->master_datap_->assets_ev[i].event << std::endl;
+                    std::cout << "assets_ev[" << i << "].event_feedback = " << this->master_datap_->assets_ev[i].event_feedback << std::endl;
+                    //std::cout << "assets_ev[" << i << "].semid = " << this->master_datap_->assets_ev[i].semid << std::endl;
+                }
+            }
+
+            std::cout << "pdu_meta_data.mode = " << this->master_datap_->pdu_meta_data.mode << std::endl;
+            std::cout << "pdu_meta_data.asset_num = " << this->master_datap_->pdu_meta_data.asset_num << std::endl;
+            std::cout << "pdu_meta_data.pdu_sync_asset_id = " << this->master_datap_->pdu_meta_data.pdu_sync_asset_id << std::endl;
+            std::cout << "pdu_meta_data.channel_num = " << this->master_datap_->pdu_meta_data.channel_num << std::endl;
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                if (this->master_datap_->assets[i].type != HakoAsset_Unknown) {
+                    std::cout << "pdu_meta_data.asset_pdu_check_status[" << i << "] = " << this->master_datap_->pdu_meta_data.asset_pdu_check_status[i] << std::endl;
+                    std::cout << "pdu_meta_data.asset_pdu_check_status[" << i << "] = " << this->master_datap_->pdu_meta_data.asset_pdu_check_status[i] << std::endl;
+                }
+            }
+            for (int i = 0; i < this->master_datap_->pdu_meta_data.channel_num; i++) {
+                std::cout << "pdu_meta_data.channel[" << i << "].offset = " << this->master_datap_->pdu_meta_data.channel[i].offset << std::endl;
+                std::cout << "pdu_meta_data.channel[" << i << "].size = " << this->master_datap_->pdu_meta_data.channel[i].size << std::endl;
+            }
+            for (int i = 0; i < this->master_datap_->pdu_meta_data.channel_num; i++) {
+                std::cout << "pdu_meta_data.channel_map[" << i << "].robo_name = " << std::string(this->master_datap_->pdu_meta_data.channel_map[i].robo_name.data) << std::endl;
+                std::cout << "pdu_meta_data.channel_map[" << i << "].logical_channel_id = " << this->master_datap_->pdu_meta_data.channel_map[i].logical_channel_id << std::endl;
+            }
+        }
     private:
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
         HakoMasterDataType *master_datap_ = nullptr;

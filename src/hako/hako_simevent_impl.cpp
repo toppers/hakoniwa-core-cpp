@@ -78,6 +78,11 @@ size_t hako::HakoSimulationEventController::pdu_size(HakoPduChannelIdType channe
     return this->master_data_->get_pdu_data()->pdu_size_nolock(channel_id);
 }
 
+void hako::HakoSimulationEventController::print_master_data()
+{
+    this->master_data_->print_master_data();
+}
+
 void hako::HakoSimulationEventController::do_event_handling()
 {
     HakoSimulationStateType prev;
