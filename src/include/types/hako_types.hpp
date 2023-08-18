@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <memory>
+#include <cstdarg>
 #include "types/hako_osdeps.hpp"
 #include "config/hako_config.hpp"
 
