@@ -143,9 +143,11 @@ namespace hako::data {
 
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
             if (type == hako::data::HakoAssetType::HakoAsset_Unknown) {
+                HAKO_LOG_ERROR("alloc_asset type is unknown");
                 return -1;
             }
             if (name.length() > HAKO_FIXED_STRLEN_MAX) {
+                HAKO_LOG_ERROR("alloc_asset name len is big: %d", name.length());
                 return -1;
             }
             HakoAssetIdType id = -1;
