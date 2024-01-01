@@ -10,6 +10,10 @@ if(WIN32)
 endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
+include(FetchContent)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 add_library(
     hako STATIC
     hako/hako_impl.cpp
@@ -39,6 +43,6 @@ target_include_directories(
     PRIVATE /mingw64/include
     PRIVATE ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
-    PRIVATE ${PROJECT_SOURCE_DIR}/../third-party/json/single_include
+    PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
 
