@@ -5,6 +5,7 @@
 //#include "utils/hako_logger.hpp"
 #include "core/context/hako_context.hpp"
 #include "hako_log.hpp"
+#include <cstdarg>
 
 static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
 static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
