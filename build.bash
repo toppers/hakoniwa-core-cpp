@@ -36,7 +36,12 @@ mkdir -p cmake-build
 cd cmake-build
 if [ ${OPT} = "test" ]
 then
-    cmake -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
+    if [ ${OS_TYPE} = "posix" ]
+    then
+        cmake -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
+    else
+        cmake -G "Unix Makefiles" -D WIN32=true -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
+    fi
 
     make
     make test
@@ -45,7 +50,7 @@ else
     then
         cmake -D test=false -D debug=true -D gcov=false ..
     else
-        cmake .. -G "MSYS Makefiles"
+        cmake .. -G "Unix Makefiles" -D WIN32=true
     fi
     make
 fi
