@@ -3,6 +3,8 @@
 #include "utils/hako_config_loader.hpp"
 //#include "utils/hako_logger.hpp"
 #include "utils/hako_assert.hpp"
+#include <stdlib.h>
+
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1
 
@@ -57,12 +59,7 @@ static void hako_sem_down(int index)
         }
         hako_flock_release(flock_handle);
         //printf("sem_down[%d][%lld]: tmp release\n", index, pid);
-#ifdef WIN32
-        //https://learn.microsoft.com/ja-jp/windows/win32/api/synchapi/nf-synchapi-sleep
-        Sleep(500);
-#else
-        usleep(500*1000);
-#endif
+        usleep(20*1000);
         //printf("sem_down[%d][%lld]: tmp acquire\n", index, pid);
         hako_flock_acquire(flock_handle);
     }

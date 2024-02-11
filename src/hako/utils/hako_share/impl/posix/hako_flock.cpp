@@ -55,6 +55,7 @@ HakoFlockObjectType* hako_flock_open(std::string &filepath)
     handle->flock_obj.obj = handle;
     handle->fd = open(filepath.c_str(), O_RDWR);
     if (handle->fd < 0) {
+        printf("ERROR: can not open flock file:%s\n", filepath.c_str());
         hako_flock_destroy(&handle->flock_obj);
         return nullptr;
     }

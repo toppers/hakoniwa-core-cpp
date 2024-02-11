@@ -1,6 +1,7 @@
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include "utils/hako_share/hako_shared_memory_shm.hpp"
 #include "utils/hako_share/hako_shared_memory_mmap.hpp"
+#include <iostream>
 
 std::shared_ptr<hako::utils::HakoSharedMemory> hako::utils::hako_shared_memory_create(const std::string& type)
 {
@@ -14,6 +15,7 @@ std::shared_ptr<hako::utils::HakoSharedMemory> hako::utils::hako_shared_memory_c
 #endif
     else
     {
+        std::cout << "Error: Invalid shared memory type: " << type << std::endl;
         return nullptr;
     }
 }

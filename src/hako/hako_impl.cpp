@@ -114,7 +114,11 @@ void hako::log::add(const char* level, const char* file, int line, const char* f
 {
     if (!master_data_ptr) {
         return;
-    }    
+    }
+    if (master_data_ptr->is_locked()) {
+        std::cout << "WARN: hako log is discarded because of master lock is locked...." << std::endl;
+        return;
+    }
     va_list args;
     va_start(args, format);
     master_data_ptr->add_log_internal(level, file, line, function, format, args);    

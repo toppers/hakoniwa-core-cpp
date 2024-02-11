@@ -42,7 +42,7 @@ void hako::core::rpc::HakoInternalRpc::stop()
 }
 void hako::core::rpc::HakoInternalRpc::proxy_thread()
 {
-    //hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread start: asset[{0}]", this->asset_id_);
+    HAKO_LOG_INFO("HakoInternalRpc Thread: Start");
     while (true) {
         asset_down(this->master_data_->get_semid(), this->asset_id_);
         auto* asset = this->master_data_->get_asset_event_nolock(this->asset_id_);
@@ -52,7 +52,7 @@ void hako::core::rpc::HakoInternalRpc::proxy_thread()
         hako::data::HakoAssetEventType event_id = asset->event;
         this->map_[event_id]();
     }
-    //hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread stop: asset[{0}]", this->asset_id_);
+    HAKO_LOG_INFO("HakoInternalRpc Thread: End");
     return;
 }
 
@@ -73,12 +73,15 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
     }
     switch (event_id) {
         case hako::data::HakoAssetEvent_Start:
+            HAKO_LOG_INFO("Notify Event: Start asset=%s", asset->name);
             asset->callback.start();
             break;
         case hako::data::HakoAssetEvent_Stop:
+            HAKO_LOG_INFO("Notify Event: Stop asset=%s", asset->name);
             asset->callback.stop();
             break;
         case hako::data::HakoAssetEvent_Reset:
+            HAKO_LOG_INFO("Notify Event: Reset asset=%s", asset->name);
             asset->callback.reset();
             break;
         default:

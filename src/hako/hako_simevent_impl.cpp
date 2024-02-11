@@ -1,5 +1,5 @@
 #include "hako_simevent_impl.hpp"
-//#include "utils/hako_logger.hpp"
+#include "hako_log.hpp"
 #include "core/rpc/hako_internal_rpc.hpp"
 
 HakoSimulationStateType hako::HakoSimulationEventController::state()
@@ -34,6 +34,7 @@ bool hako::HakoSimulationEventController::trigger_event(HakoSimulationStateType 
 
 bool hako::HakoSimulationEventController::start()
 {
+    HAKO_LOG_INFO("Event: Start");
     return this->trigger_event(HakoSim_Stopped, HakoSim_Runnable, hako::data::HakoAssetEvent_Start);
 }
 
@@ -41,11 +42,13 @@ bool hako::HakoSimulationEventController::start()
 
 bool hako::HakoSimulationEventController::stop()
 {
+    HAKO_LOG_INFO("Event: Stop");
     return this->trigger_event(HakoSim_Running, HakoSim_Stopping, hako::data::HakoAssetEvent_Stop);
 }
 
 bool hako::HakoSimulationEventController::reset()
 {
+    HAKO_LOG_INFO("Event: Reset");
     bool ret = false;
     auto& state = this->master_data_->ref_state_nolock();
     if (state == HakoSim_Stopped) {

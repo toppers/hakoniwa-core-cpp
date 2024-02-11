@@ -7,11 +7,11 @@ bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, Ass
     hako::core::context::HakoContext context;
     auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, &callbacks);
     if (id < 0) {
-        //hako::utils::logger::get("core")->error("can not registered: asset[{0}]", name);
+        HAKO_LOG_ERROR("can not registered: asset: %s", name.c_str());
         return false;
     }
     else {
-        //hako::utils::logger::get("core")->info("Registered: asset[{0}]", name);
+        HAKO_LOG_INFO("registered: asset: %s", name.c_str());
     }
     this->rpc_ = std::make_shared<hako::core::rpc::HakoInternalRpc>(id, this->master_data_);
     this->rpc_->register_callback(hako::data::HakoAssetEvent_Start, callbacks.start);
@@ -25,11 +25,11 @@ bool hako::HakoAssetControllerImpl::asset_register_polling(const std::string & n
     hako::core::context::HakoContext context;
     auto id = this->master_data_->alloc_asset(name, hako::data::HakoAssetType::HakoAsset_Inside, nullptr);
     if (id < 0) {
-        //hako::utils::logger::get("core")->error("can not registered: polling asset[{0}]", name);
+        HAKO_LOG_ERROR("can not registered: asset: %s", name.c_str());
         return false;
     }
     else {
-        //hako::utils::logger::get("core")->info("Registered: polling asset[{0}]", name);
+        HAKO_LOG_INFO("registered: asset: %s", name.c_str());
     }
     return true;
 }
@@ -51,10 +51,10 @@ bool hako::HakoAssetControllerImpl::asset_unregister(const std::string & name)
 {
     auto ret = this->master_data_->free_asset(name);
     if (ret) {
-        //hako::utils::logger::get("core")->info("Unregistered: asset[{0}]", name);
+        HAKO_LOG_ERROR("can not unregistered: asset: %s", name.c_str());
     }
     else {
-        //hako::utils::logger::get("core")->error("can not unregistered: asset[{0}]", name);
+        HAKO_LOG_INFO("unregistered: asset: %s", name.c_str());
     }
     if (this->rpc_ != nullptr) {
         this->rpc_->stop();
@@ -113,22 +113,27 @@ bool hako::HakoAssetControllerImpl::feedback(const std::string& asset_name, bool
 
 bool hako::HakoAssetControllerImpl::start_feedback(const std::string& asset_name, bool isOk)
 {
+    HAKO_LOG_INFO("start feedbak: asset: %s %d", asset_name.c_str(), isOk);
     return this->feedback(asset_name, isOk, HakoSim_Runnable);
 }
 bool hako::HakoAssetControllerImpl::stop_feedback(const std::string& asset_name, bool isOk)
 {
+    HAKO_LOG_INFO("stop feedbak: asset: %s %d", asset_name.c_str(), isOk);
     return this->feedback(asset_name, isOk, HakoSim_Stopping);
 }
 bool hako::HakoAssetControllerImpl::reset_feedback(const std::string& asset_name, bool isOk)
 {
+    HAKO_LOG_INFO("reset feedbak: asset: %s %d", asset_name.c_str(), isOk);
     return this->feedback(asset_name, isOk, HakoSim_Resetting);
 }
 bool hako::HakoAssetControllerImpl::create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_size)
 {
+    HAKO_LOG_INFO("create pdu channel: channel_id= %d pdu_size=%ld", channel_id, pdu_size);
     return this->master_data_->get_pdu_data()->create_channel(channel_id, pdu_size);
 }
 bool hako::HakoAssetControllerImpl::create_pdu_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t pdu_size)
 {
+    HAKO_LOG_INFO("create pdu lchannel: robo_name=%s channel_id= %d pdu_size=%ld", robo_name.c_str(), channel_id, pdu_size);
     return this->master_data_->get_pdu_data()->create_lchannel(robo_name, channel_id, pdu_size);
 }
 HakoPduChannelIdType hako::HakoAssetControllerImpl::get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)

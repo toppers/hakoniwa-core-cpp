@@ -1,4 +1,5 @@
 #include "utils/hako_share/hako_sem.hpp"
+#include "hako_log.hpp"
 //#include "utils/hako_logger.hpp"
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1
@@ -17,7 +18,7 @@ int32_t hako::utils::sem::create(int32_t key)
 {
     int32_t sem_id = semget(key, (1 + HAKO_DATA_MAX_ASSET_NUM), 0666 | IPC_CREAT);
     if (sem_id < 0) {
-        //hako::utils::logger::get("core")->error("semget() key={0} error={1}", key, errno);
+        HAKO_LOG_ERROR("semget() error: key=%d errno=%d", key, errno);
         return -1;
     }
 
@@ -30,7 +31,7 @@ int32_t hako::utils::sem::create(int32_t key)
     argument.array = values;
     int err = semctl(sem_id, 0, SETALL, argument);
     if (err < 0) {
-        //hako::utils::logger::get("core")->error("semctl() error = {0} sem_id={1}", errno, sem_id);
+        HAKO_LOG_ERROR("semctl() error: key=%d errno=%d", key, errno);
         hako::utils::sem::destroy(sem_id);
         return -1;
     }
@@ -51,7 +52,7 @@ void hako::utils::sem::asset_down(int32_t sem_id, int32_t asset_id)
     sop.sem_flg =  0;            // Operation flag
     int32_t err = semop(sem_id, &sop, 1);
     if (err < 0) {
-        //hako::utils::logger::get("core")->error("asset_down() error = {0} sem_id={1} inx={2}", errno, sem_id, asset_id);
+        HAKO_LOG_ERROR("asset_down: semop() error: sem_id=%d asset_id=%d errno=%d", sem_id, asset_id, errno);
     }
     return;
 }
@@ -63,7 +64,7 @@ void hako::utils::sem::asset_up(int32_t sem_id, int32_t asset_id)
     sop.sem_flg =  0;            // Operation flag
     int32_t err = semop(sem_id, &sop, 1);
     if (err < 0) {
-        //hako::utils::logger::get("core")->error("asset_up() error = {0} sem_id={1} inx={2}", errno, sem_id, asset_id);
+        HAKO_LOG_ERROR("asset_up: semop() error: sem_id=%d asset_id=%d errno=%d", sem_id, asset_id, errno);
     }
     return;
 }
@@ -75,7 +76,7 @@ void hako::utils::sem::master_lock(int32_t sem_id)
     sop.sem_flg =  0;            // Operation flag
     int32_t err = semop(sem_id, &sop, 1);
     if (err < 0) {
-        //hako::utils::logger::get("core")->error("master_lock() error = {0} sem_id={1} inx={2}", errno, sem_id, 0);
+        HAKO_LOG_ERROR("master_lock: semop() error: sem_id=%d errno=%d", sem_id, errno);
     }
     return;
 }
@@ -87,7 +88,7 @@ void hako::utils::sem::master_unlock(int32_t sem_id)
     sop.sem_flg =  0;            // Operation flag
     int32_t err = semop(sem_id, &sop, 1);
     if (err < 0) {
-        //hako::utils::logger::get("core")->error("master_unlock() error = {0} sem_id={1} inx={2}", errno, sem_id, 0);
+        HAKO_LOG_ERROR("master_unlock: semop() error: sem_id=%d errno=%d", sem_id, errno);
     }
     return;
 }

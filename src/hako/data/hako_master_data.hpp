@@ -115,11 +115,17 @@ namespace hako::data {
         {
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
             (void)this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->is_master_locked = true;
         }
         void unlock()
         {
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
+            this->is_master_locked = false;
             (void)this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+        }
+        bool is_locked()
+        {
+            return this->is_master_locked;
         }
         /*
          * Time APIs
@@ -413,6 +419,7 @@ namespace hako::data {
         HakoMasterDataType *master_datap_ = nullptr;
         std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
         std::string shm_type_;
+        bool is_master_locked = false;
     };
 }
 

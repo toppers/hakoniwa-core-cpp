@@ -44,12 +44,14 @@ namespace hako::data {
             bool ret = true;
             if (robo_name.length() >= HAKO_FIXED_STRLEN_MAX) {
                 printf("ERROR: robo_name length(%ld) is over max(%d)\n", robo_name.length(), HAKO_FIXED_STRLEN_MAX);
+                HAKO_LOG_ERROR("ERROR: robo_name length(%ld) is over max(%d)\n", robo_name.length(), HAKO_FIXED_STRLEN_MAX);
                 return false;
             }
             this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             auto new_channel_id = this->pdu_meta_data_->channel_num;
             if (new_channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 printf("ERROR: pdu chanel is full\n");
+                HAKO_LOG_ERROR("ERROR: pdu chanel is full\n");
                 ret = false;
             }
             else if (this->pdu_meta_data_->channel[new_channel_id].size == 0) {
