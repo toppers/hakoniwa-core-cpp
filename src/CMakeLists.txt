@@ -53,5 +53,6 @@ target_include_directories(
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
-target_link_libraries(hako stdc++)
-
+if(WIN32)
+    target_link_libraries(hako stdc++)
+endif()
