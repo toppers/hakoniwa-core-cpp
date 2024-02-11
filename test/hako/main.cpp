@@ -5,32 +5,6 @@
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include <unistd.h>
 
-void do_shared_memory_multi_proc_test()
-{
-    std::shared_ptr<hako::utils::HakoSharedMemory> shm = hako::utils::hako_shared_memory_create("shm");
-    int32_t shmid = shm->create_memory(HAKO_SHARED_MEMORY_ID_0, 1024);
-    EXPECT_TRUE(shmid > 0);
-
-    void *value = shm->lock_memory(HAKO_SHARED_MEMORY_ID_0);
-    EXPECT_TRUE(value != nullptr);
-
-    for (int i = 0; i < 5; i++)
-    {
-        printf("LOCKING:sleep 1sec...\n");
-        usleep (1000000);
-    }
-
-    shm->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
-
-    for (int i = 0; i < 5; i++)
-    {
-        printf("UNLOCKING:sleep 1sec...\n");
-        usleep (1000000);
-    }
-
-    shm->destroy_memory(HAKO_SHARED_MEMORY_ID_0);
-    return;
-}
 
 int main(int argc, char *argv[])
 {

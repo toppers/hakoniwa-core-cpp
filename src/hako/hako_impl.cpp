@@ -2,6 +2,7 @@
 #include "hako_master_impl.hpp"
 #include "hako_asset_impl.hpp"
 #include "hako_simevent_impl.hpp"
+#include "utils/hako_config_loader.hpp"
 //#include "utils/hako_logger.hpp"
 #include "core/context/hako_context.hpp"
 #include "hako_log.hpp"
@@ -16,9 +17,17 @@ void hako::init()
 {
     //hako::utils::logger::init("core");
     if (master_data_ptr == nullptr) {
+        HakoConfigType config;
+        hako_config_load(config);
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        master_data_ptr->init();
+        if (config.param == nullptr) {
+            master_data_ptr->init();
+        }
+        else {
+            master_data_ptr->init("mmap");
+        }
     }
+    HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
     return;
 }
@@ -62,11 +71,22 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (master_data_ptr->load() == false) {
-            return nullptr;
+        HakoConfigType config;
+        hako_config_load(config);
+        if (config.param == nullptr) {
+            if (master_data_ptr->load() == false) {
+                return nullptr;
+            }
+        }
+        else
+        {
+            if (master_data_ptr->load("mmap") == false) {
+                return nullptr;
+            }
         }
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
+    HAKO_LOG_INFO("hako::create_asset_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
 
     return asset_ptr;
 }
@@ -78,13 +98,22 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (master_data_ptr->load() == false) {
-            //hako::utils::logger::get("core")->error("get_simevent_controller() can not load master data");
-            //hako::utils::logger::get("core")->flush();            
-            return nullptr;
+        HakoConfigType config;
+        hako_config_load(config);
+        if (config.param == nullptr) {
+            if (master_data_ptr->load() == false) {
+                return nullptr;
+            }
+        }
+        else
+        {
+            if (master_data_ptr->load("mmap") == false) {
+                return nullptr;
+            }
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
+    HAKO_LOG_INFO("hako::get_simevent_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     return simevent_ptr;
 }
 
