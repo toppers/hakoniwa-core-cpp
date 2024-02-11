@@ -1,4 +1,4 @@
-#include "utils/hako_share/hako_sem.hpp"
+#include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/impl/hako_flock.hpp"
 #include "utils/hako_config_loader.hpp"
 //#include "utils/hako_logger.hpp"
@@ -87,7 +87,7 @@ static void hako_sem_up(int index)
 }
 
 
-int32_t hako::utils::sem::create(int32_t key)
+int32_t hako::utils::sem::flock::create(int32_t key)
 {
     char buf[4096];
     HakoConfigType config;
@@ -115,32 +115,32 @@ int32_t hako::utils::sem::create(int32_t key)
     return key;
 }
 
-void hako::utils::sem::destroy(int32_t sem_id)
+void hako::utils::sem::flock::destroy(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     hako_flock_destroy(flock_handle);
     return;
 }
 
-void hako::utils::sem::asset_down(int32_t sem_id, int32_t asset_id)
+void hako::utils::sem::flock::asset_down(int32_t sem_id, int32_t asset_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     hako_sem_down(HAKO_SEM_INX_ASSETS + asset_id);
     return;
 }
-void hako::utils::sem::asset_up(int32_t sem_id, int32_t asset_id)
+void hako::utils::sem::flock::asset_up(int32_t sem_id, int32_t asset_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     hako_sem_up(HAKO_SEM_INX_ASSETS + asset_id);
     return;
 }
-void hako::utils::sem::master_lock(int32_t sem_id)
+void hako::utils::sem::flock::master_lock(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     hako_sem_down(HAKO_SEM_INX_MASTER);
     return;
 }
-void hako::utils::sem::master_unlock(int32_t sem_id)
+void hako::utils::sem::flock::master_unlock(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     hako_sem_up(HAKO_SEM_INX_MASTER);

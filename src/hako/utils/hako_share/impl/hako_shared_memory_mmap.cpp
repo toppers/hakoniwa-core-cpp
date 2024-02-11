@@ -1,7 +1,7 @@
 #include "types/hako_types.hpp"
 
 #include "utils/hako_share/hako_shared_memory_mmap.hpp"
-#include "utils/hako_share/hako_sem.hpp"
+#include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/impl/hako_mmap.hpp"
 #include "utils/hako_config_loader.hpp"
 
@@ -29,7 +29,7 @@ int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, int32_t si
     //printf("INFO: hako_mmap_create() key=%d size=%d \n", key, size);
     void *shared_memory = mmap_obj->mmap_addr;
 
-    int32_t sem_id = hako::utils::sem::create(key);
+    int32_t sem_id = hako::utils::sem::flock::create(key);
     if (sem_id < 0) {
         hako_mmap_destroy(mmap_obj);
         return -1;
@@ -92,13 +92,13 @@ void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t 
 
 void* hako::utils::HakoSharedMemoryMmap::lock_memory(int32_t key)
 {
-    hako::utils::sem::master_lock(this->shared_memory_map_[key].sem_id);
+    hako::utils::sem::flock::master_lock(this->shared_memory_map_[key].sem_id);
     return &this->shared_memory_map_[key].addr->data[0];
 }
 
 void hako::utils::HakoSharedMemoryMmap::unlock_memory(int32_t key)
 {
-    hako::utils::sem::master_unlock(this->shared_memory_map_[key].sem_id);
+    hako::utils::sem::flock::master_unlock(this->shared_memory_map_[key].sem_id);
     return;
 }
 int32_t hako::utils::HakoSharedMemoryMmap::get_semid(int32_t key)
@@ -111,7 +111,7 @@ void hako::utils::HakoSharedMemoryMmap::destroy_memory(int32_t key)
     void *addr = this->shared_memory_map_[key].addr;
     if (addr != nullptr) {
         hako_mmap_destroy(this->shared_memory_map_[key].mmap_obj);
-        hako::utils::sem::destroy(this->shared_memory_map_[key].sem_id);
+        hako::utils::sem::flock::destroy(this->shared_memory_map_[key].sem_id);
         this->shared_memory_map_.erase(key);
     }
     return;
