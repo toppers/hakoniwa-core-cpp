@@ -45,7 +45,7 @@ else
     then
         cmake -D test=false -D debug=true -D gcov=false ..
     else
-        cmake .. -G "MSYS Makefiles"
+        cmake .. -G "Unix Makefiles" -D WIN32=true
     fi
     make
 fi

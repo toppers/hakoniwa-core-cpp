@@ -7,11 +7,13 @@ project(hakoniwa-core
 set(OS_TYPE "posix")
 if(WIN32)
     set(OS_TYPE "win")
+elseif(MSYS)
+    set(OS_TYPE "win")
 endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP true)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz )
 FetchContent_MakeAvailable(json)
 
 add_library(
@@ -30,13 +32,18 @@ add_library(
 
     #for sem && shared memory
     hako/utils/hako_share/impl/hako_shared_memory_factory.cpp
-    hako/utils/hako_share/impl/posix/hako_shared_memory_shm.cpp
-    hako/utils/hako_share/impl/posix/hako_sem.cpp
     
     hako/utils/hako_share/impl/${OS_TYPE}/os_file_io.cpp
     hako/utils/hako_string.cpp
     hako/utils/hako_logger.cpp
 )
+# POSIX特有のファイルをWIN32ではない場合にのみ追加
+if(NOT WIN32)
+    target_sources(hako PRIVATE
+        hako/utils/hako_share/impl/posix/hako_shared_memory_shm.cpp
+        hako/utils/hako_share/impl/posix/hako_sem.cpp
+    )
+endif()
 
 target_include_directories(
     hako
@@ -46,4 +53,5 @@ target_include_directories(
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
+target_link_libraries(hako stdc++)
 

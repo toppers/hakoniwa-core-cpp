@@ -4,12 +4,14 @@
 
 std::shared_ptr<hako::utils::HakoSharedMemory> hako::utils::hako_shared_memory_create(const std::string& type)
 {
-    if (type == "shm") {
-        return std::make_shared<hako::utils::HakoSharedMemoryShm>();
-    }
-    else if (type == "mmap") {
+    if (type == "mmap") {
         return std::make_shared<hako::utils::HakoSharedMemoryMmap>();
     }
+#ifndef WIN32
+    else if (type == "shm") {
+        return std::make_shared<hako::utils::HakoSharedMemoryShm>();
+    }
+#endif
     else
     {
         return nullptr;

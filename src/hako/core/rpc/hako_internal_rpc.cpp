@@ -1,5 +1,12 @@
 #include "core/rpc/hako_internal_rpc.hpp"
 #include "core/context/hako_context.hpp"
+#ifdef WIN32
+using hako::utils::sem::flock::asset_up;
+using hako::utils::sem::flock::asset_down;
+#else
+using hako::utils::sem::asset_up;
+using hako::utils::sem::asset_down;
+#endif
 
 void hako::core::rpc::HakoInternalRpc::register_callback(hako::data::HakoAssetEventType event_id, void (*callback) ())
 {
@@ -28,7 +35,7 @@ void hako::core::rpc::HakoInternalRpc::stop()
         // nothing to do
     }
     else {
-        hako::utils::sem::asset_up(this->master_data_->get_semid(), this->asset_id_);
+        asset_up(this->master_data_->get_semid(), this->asset_id_);
         this->proxy_thread_->join();
         this->proxy_thread_ = nullptr;
     }
@@ -37,7 +44,7 @@ void hako::core::rpc::HakoInternalRpc::proxy_thread()
 {
     //hako::utils::logger::get("core")->info("HakoInternalRpc: monitor_thread start: asset[{0}]", this->asset_id_);
     while (true) {
-        hako::utils::sem::asset_down(this->master_data_->get_semid(), this->asset_id_);
+        asset_down(this->master_data_->get_semid(), this->asset_id_);
         auto* asset = this->master_data_->get_asset_event_nolock(this->asset_id_);
         if (asset == nullptr) {
             break;
@@ -61,7 +68,7 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
         return;
     }
     if (!context.is_same(asset_ev->pid)) {
-        hako::utils::sem::asset_up(master_data->get_semid(), asset_id);
+        asset_up(master_data->get_semid(), asset_id);
         return;
     }
     switch (event_id) {

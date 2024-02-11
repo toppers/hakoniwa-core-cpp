@@ -2,6 +2,7 @@
 #define _HAKO_ASSERT_HPP_
 
 #include "types/hako_types.hpp"
+#include <cassert>
 //#include "utils/hako_logger.hpp"
 
 
