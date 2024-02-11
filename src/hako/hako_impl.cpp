@@ -2,6 +2,7 @@
 #include "hako_master_impl.hpp"
 #include "hako_asset_impl.hpp"
 #include "hako_simevent_impl.hpp"
+#include "utils/hako_config_loader.hpp"
 //#include "utils/hako_logger.hpp"
 #include "core/context/hako_context.hpp"
 #include "hako_log.hpp"
@@ -16,8 +17,15 @@ void hako::init()
 {
     //hako::utils::logger::init("core");
     if (master_data_ptr == nullptr) {
+        HakoConfigType config;
+        hako_config_load(config);
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        master_data_ptr->init();
+        if (config.param == nullptr) {
+            master_data_ptr->init();
+        }
+        else {
+            master_data_ptr->init("mmap");
+        }
     }
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
     return;

@@ -1,11 +1,11 @@
 #include "types/hako_types.hpp"
 
-#include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory_mmap.hpp"
 #include "utils/hako_share/hako_sem.hpp"
 #include "utils/hako_share/impl/hako_mmap.hpp"
 #include "utils/hako_config_loader.hpp"
 
-int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
+int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, int32_t size)
 {
     int32_t total_size = size + sizeof(SharedMemoryMetaDataType);
     char buf[4096];
@@ -47,7 +47,7 @@ int32_t hako::utils::HakoSharedMemory::create_memory(int32_t key, int32_t size)
     this->shared_memory_map_.insert(std::make_pair(key, info));
     return 0;
 }
-void* hako::utils::HakoSharedMemory::load_memory(int32_t key, int32_t size)
+void* hako::utils::HakoSharedMemoryMmap::load_memory(int32_t key, int32_t size)
 {
     if (size == 0) {
         return nullptr;
@@ -55,7 +55,7 @@ void* hako::utils::HakoSharedMemory::load_memory(int32_t key, int32_t size)
     return this->load_memory_shmid(key, -1);
 }
 
-void* hako::utils::HakoSharedMemory::load_memory_shmid(int32_t key, int32_t shmid)
+void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t shmid)
 {
     if (shmid >= 0) {
         return nullptr;
@@ -90,23 +90,23 @@ void* hako::utils::HakoSharedMemory::load_memory_shmid(int32_t key, int32_t shmi
     return &this->shared_memory_map_[key].addr->data[0];
 }
 
-void* hako::utils::HakoSharedMemory::lock_memory(int32_t key)
+void* hako::utils::HakoSharedMemoryMmap::lock_memory(int32_t key)
 {
     hako::utils::sem::master_lock(this->shared_memory_map_[key].sem_id);
     return &this->shared_memory_map_[key].addr->data[0];
 }
 
-void hako::utils::HakoSharedMemory::unlock_memory(int32_t key)
+void hako::utils::HakoSharedMemoryMmap::unlock_memory(int32_t key)
 {
     hako::utils::sem::master_unlock(this->shared_memory_map_[key].sem_id);
     return;
 }
-int32_t hako::utils::HakoSharedMemory::get_semid(int32_t key)
+int32_t hako::utils::HakoSharedMemoryMmap::get_semid(int32_t key)
 {
     return this->shared_memory_map_[key].sem_id;
 }
 
-void hako::utils::HakoSharedMemory::destroy_memory(int32_t key)
+void hako::utils::HakoSharedMemoryMmap::destroy_memory(int32_t key)
 {
     void *addr = this->shared_memory_map_[key].addr;
     if (addr != nullptr) {

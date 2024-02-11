@@ -11,7 +11,7 @@ endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP true)
 FetchContent_MakeAvailable(json)
 
 add_library(
@@ -23,10 +23,10 @@ add_library(
     hako/core/simulation/time/hako_time.cpp
     hako/core/rpc/hako_internal_rpc.cpp
     #for filelock && mmap
-    #hako/utils/hako_share/impl/posix/hako_sem_flock.cpp
-    #hako/utils/hako_share/impl/posix/hako_shared_memory_mmap.cpp
-    #hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp
-    #hako/utils/hako_share/impl/${OS_TYPE}/hako_flock.cpp
+    hako/utils/hako_share/impl/hako_sem_flock.cpp
+    hako/utils/hako_share/impl/hako_shared_memory_mmap.cpp
+    hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp
+    hako/utils/hako_share/impl/${OS_TYPE}/hako_flock.cpp
 
     #for sem && shared memory
     hako/utils/hako_share/impl/hako_shared_memory_factory.cpp
