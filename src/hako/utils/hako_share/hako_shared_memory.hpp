@@ -23,22 +23,17 @@ namespace hako::utils {
 
     class HakoSharedMemory {
     public:
-        HakoSharedMemory() {}
         virtual ~HakoSharedMemory() {}
 
-        int32_t create_memory(int32_t key, int32_t size);
-        void* load_memory(int32_t key, int32_t size);
+        virtual int32_t create_memory(int32_t key, int32_t size) = 0;
+        virtual void* load_memory(int32_t key, int32_t size) = 0;
 
-        void* lock_memory(int32_t key);
-        void unlock_memory(int32_t key);
-        void destroy_memory(int32_t key);
+        virtual void* lock_memory(int32_t key) = 0;
+        virtual void unlock_memory(int32_t key) = 0;
+        virtual void destroy_memory(int32_t key) = 0;
 
-        int32_t get_shmid();
-        int32_t get_semid(int32_t key);
+        virtual int32_t get_semid(int32_t key) = 0;
 
-    private:
-        void* load_memory_shmid(int32_t key, int32_t shmid);
-        std::map<int32_t, SharedMemoryInfoType> shared_memory_map_;
     };
 }
 

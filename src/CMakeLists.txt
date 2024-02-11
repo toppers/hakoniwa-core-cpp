@@ -29,6 +29,7 @@ add_library(
     #hako/utils/hako_share/impl/${OS_TYPE}/hako_flock.cpp
 
     #for sem && shared memory
+    hako/utils/hako_share/impl/hako_shared_memory_factory.cpp
     hako/utils/hako_share/impl/posix/hako_shared_memory_shm.cpp
     hako/utils/hako_share/impl/posix/hako_sem.cpp
     
