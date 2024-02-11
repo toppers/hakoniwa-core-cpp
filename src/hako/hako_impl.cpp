@@ -27,6 +27,7 @@ void hako::init()
             master_data_ptr->init("mmap");
         }
     }
+    HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
     return;
 }
@@ -85,6 +86,7 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
         }
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
+    HAKO_LOG_INFO("hako::create_asset_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
 
     return asset_ptr;
 }
@@ -111,6 +113,7 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
+    HAKO_LOG_INFO("hako::get_simevent_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     return simevent_ptr;
 }
 
