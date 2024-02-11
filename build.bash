@@ -38,7 +38,7 @@ if [ ${OPT} = "test" ]
 then
     if [ ${OS_TYPE} = "posix" ]
     then
-        cmake -D test=false -D debug=true -D gcov=false ..
+        cmake -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
     else
         cmake -G "Unix Makefiles" -D WIN32=true -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
     fi
