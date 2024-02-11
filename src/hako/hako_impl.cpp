@@ -13,7 +13,7 @@ static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
 static std::shared_ptr<hako::IHakoAssetController> asset_ptr = nullptr;
 static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = nullptr;
 
-void hako::init()
+bool hako::init()
 {
     //hako::utils::logger::init("core");
     if (master_data_ptr == nullptr) {
@@ -21,15 +21,16 @@ void hako::init()
         hako_config_load(config);
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
         if (config.param == nullptr) {
-            master_data_ptr->init();
+            std::cout << "WARN: hako::init() can not find cpp_core_config.json" << std::endl;
+            master_data_ptr->init("shm");
         }
         else {
-            master_data_ptr->init("mmap");
+            master_data_ptr->init(config.param["shm_type"]);
         }
     }
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
-    return;
+    return true;
 }
 void hako::destroy()
 {
@@ -74,15 +75,11 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
         HakoConfigType config;
         hako_config_load(config);
         if (config.param == nullptr) {
-            if (master_data_ptr->load() == false) {
-                return nullptr;
-            }
+            std::cout << "hako::create_asset_controller() can not find cpp_core_config.json" << std::endl;
+            return nullptr;
         }
-        else
-        {
-            if (master_data_ptr->load("mmap") == false) {
-                return nullptr;
-            }
+        if (master_data_ptr->load(config.param["shm_type"]) == false) {
+            return nullptr;
         }
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
@@ -101,15 +98,11 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         HakoConfigType config;
         hako_config_load(config);
         if (config.param == nullptr) {
-            if (master_data_ptr->load() == false) {
-                return nullptr;
-            }
+            std::cout << "hako::get_simevent_controller() can not find cpp_core_config.json" << std::endl;
+            return nullptr;
         }
-        else
-        {
-            if (master_data_ptr->load("mmap") == false) {
-                return nullptr;
-            }
+        if (master_data_ptr->load(config.param["shm_type"]) == false) {
+            return nullptr;
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);

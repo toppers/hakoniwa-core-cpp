@@ -6,7 +6,7 @@
 #include "hako_simevent.hpp"
 
 namespace hako {
-    void init();
+    bool init();
     void destroy();
     std::shared_ptr<hako::IHakoMasterController> create_master();
     std::shared_ptr<hako::IHakoAssetController> create_asset_controller();
