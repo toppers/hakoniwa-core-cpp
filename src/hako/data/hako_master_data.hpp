@@ -73,10 +73,14 @@ namespace hako::data {
             return this->shmp_->get_semid(HAKO_SHARED_MEMORY_ID_0);
         }
 
-        bool load()
+        bool load(const std::string& type="shm")
         {
             if (this->shmp_ != nullptr) {
                 return true;
+            }
+            if (type != "shm")
+            {
+                this->shm_type_ = type;
             }
             this->shmp_ = hako::utils::hako_shared_memory_create(this->get_shm_type());
             void *datap = this->shmp_->load_memory(HAKO_SHARED_MEMORY_ID_0, sizeof(HakoMasterDataType));

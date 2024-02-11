@@ -70,8 +70,18 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (master_data_ptr->load() == false) {
-            return nullptr;
+        HakoConfigType config;
+        hako_config_load(config);
+        if (config.param == nullptr) {
+            if (master_data_ptr->load() == false) {
+                return nullptr;
+            }
+        }
+        else
+        {
+            if (master_data_ptr->load("mmap") == false) {
+                return nullptr;
+            }
         }
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
@@ -86,10 +96,18 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (master_data_ptr->load() == false) {
-            //hako::utils::logger::get("core")->error("get_simevent_controller() can not load master data");
-            //hako::utils::logger::get("core")->flush();            
-            return nullptr;
+        HakoConfigType config;
+        hako_config_load(config);
+        if (config.param == nullptr) {
+            if (master_data_ptr->load() == false) {
+                return nullptr;
+            }
+        }
+        else
+        {
+            if (master_data_ptr->load("mmap") == false) {
+                return nullptr;
+            }
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
