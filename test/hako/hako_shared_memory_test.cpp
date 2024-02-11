@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory_factory.hpp"
 
 class HakoSharedMemoryTest : public ::testing::Test {
 protected:
@@ -20,7 +20,7 @@ protected:
 
 TEST_F(HakoSharedMemoryTest, HakoSharedMemory_01)
 {
-    std::shared_ptr<hako::utils::HakoSharedMemory> shm = std::make_shared<hako::utils::HakoSharedMemory>();
+    std::shared_ptr<hako::utils::HakoSharedMemory> shm = hako::utils::hako_shared_memory_create("shm");
     EXPECT_TRUE(shm.get() != nullptr);
 
     int32_t shmid = shm->create_memory(HAKO_SHARED_MEMORY_ID_0, 1024);

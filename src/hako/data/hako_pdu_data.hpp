@@ -2,7 +2,7 @@
 #define _HAKO_PDU_DATA_HPP_
 
 #include "data/hako_base_data.hpp"
-#include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include <string.h>
 #include <iostream>
 #include "hako_log.hpp"
@@ -10,12 +10,12 @@
 namespace hako::data {
     class HakoPduData {
     public:
-        HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> master_shmp)
+        HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> master_shmp, const std::string& shm_type)
         {
             this->pdu_meta_data_ = pdu_meta_data;
             this->pdu_ = nullptr;
             this->master_shmp_ = master_shmp;
-            this->asset_shmp_ = std::make_shared<hako::utils::HakoSharedMemory>();
+            this->asset_shmp_ = hako::utils::hako_shared_memory_create(shm_type);
         }
         virtual ~HakoPduData()
         {

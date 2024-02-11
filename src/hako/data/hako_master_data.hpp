@@ -2,7 +2,7 @@
 #define _HAKO_MASTER_DATA_HPP_
 
 #include "data/hako_base_data.hpp"
-#include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include "utils/hako_string.hpp"
 #include "utils/hako_assert.hpp"
 #include "utils/hako_clock.hpp"
@@ -36,13 +36,22 @@ namespace hako::data {
     public:
         HakoMasterData()
         {
+            this->shm_type_ = "shm";
         }
         virtual ~HakoMasterData()
         {
         }
-        void init()
+        std::string get_shm_type()
         {
-            this->shmp_ = std::make_shared<hako::utils::HakoSharedMemory>();
+            return this->shm_type_;
+        }
+        void init(const std::string& type="shm")
+        {
+            if (type != "shm")
+            {
+                this->shm_type_ = type;
+            }
+            this->shmp_ = hako::utils::hako_shared_memory_create(this->shm_type_);
             auto shmid = this->shmp_->create_memory(HAKO_SHARED_MEMORY_ID_0, sizeof(HakoMasterDataType));
             HAKO_ASSERT(shmid >= 0);
             void *datap = this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
@@ -53,7 +62,7 @@ namespace hako::data {
                 this->master_datap_->master_pid = context.get_pid();
             }
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
-            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_, this->get_shm_type());
         }
         pid_t get_master_pid()
         {
@@ -69,7 +78,7 @@ namespace hako::data {
             if (this->shmp_ != nullptr) {
                 return true;
             }
-            this->shmp_ = std::make_shared<hako::utils::HakoSharedMemory>();
+            this->shmp_ = hako::utils::hako_shared_memory_create(this->get_shm_type());
             void *datap = this->shmp_->load_memory(HAKO_SHARED_MEMORY_ID_0, sizeof(HakoMasterDataType));
             if (datap == nullptr) {
                 return false;
@@ -77,7 +86,7 @@ namespace hako::data {
             //printf("master load:addr=%p\n", datap);
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             HAKO_ASSERT((this->shmp_ != nullptr) && (this->master_datap_ != nullptr));
-            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_);
+            this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_, this->get_shm_type());
             return true;
         }
 
@@ -395,6 +404,7 @@ namespace hako::data {
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
         HakoMasterDataType *master_datap_ = nullptr;
         std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
+        std::string shm_type_;
     };
 }
 
