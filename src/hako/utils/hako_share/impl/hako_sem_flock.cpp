@@ -4,6 +4,7 @@
 //#include "utils/hako_logger.hpp"
 #include "utils/hako_assert.hpp"
 #include <stdlib.h>
+#include <unistd.h>
 
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1
