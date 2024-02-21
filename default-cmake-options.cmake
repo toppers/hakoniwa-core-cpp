@@ -7,10 +7,21 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wimplicit-int")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+if (MSVC)
+add_compile_options(/wd4061 /wd4819)
+add_compile_options(/wd4477 /wd4244 /wd4245)
+add_compile_options(/wd4820 /wd4365)
+add_compile_options(/wd4267)
+add_compile_options(/wd4623 /wd4625 /wd4626 /wd5027 /wd5045) #nlohmann::json
+add_compile_options(/wd4668)
+add_compile_options(/wd4996)
+add_compile_options(/wd5039)
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-long-long")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
-
+endif()
 
 set(BUILD_TYPE "release")
 if (debug)

@@ -1,7 +1,11 @@
 #include <hako.hpp>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdlib.h>
+#if WIN32
+#else
 #include <unistd.h>
+#endif
 #include <signal.h>
 
 static bool hako_master_is_end = false;

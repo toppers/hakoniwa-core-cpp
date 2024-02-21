@@ -56,8 +56,17 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
 
 void* win_mmap(WinHandleType *whp)
 {
+    if (whp == NULL) {
+        return NULL;
+    }
     whp->map_handle = CreateFileMapping(whp->handle, 0, PAGE_READWRITE, 0, 0, 0);
+    if (whp->map_handle == NULL) {
+        return NULL;
+    }
     whp->mmap_addr = MapViewOfFile(whp->map_handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+    if (whp->mmap_addr == NULL) {
+        return NULL;
+    }
     return whp->mmap_addr;
 }
 
@@ -113,7 +122,7 @@ int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
     if (ret == FALSE) {
         DWORD err = GetLastError();
         printf("win_pwrite error:%ld\n", err);
-        return -err;
+        return - (int)err;
     }
     return 0;
 }
@@ -125,7 +134,7 @@ int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset)
     if (ret == FALSE) {
         DWORD err = GetLastError();
         printf("win_pwrite error:%ld\n", err);
-        return -err;
+        return -(int)err;
     }
     return 0;
 }

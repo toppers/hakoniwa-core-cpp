@@ -9,12 +9,19 @@ add_executable(
     hako-master
     src/hako_master.cpp
 )
-
+if(MSVC)
+target_link_libraries(
+    hako-master 
+    hako
+)
+else()
 target_link_libraries(
     hako-master 
     hako
     -pthread
 )
+endif()
+
 
 #message(STATUS "HAKO_INTERFACE_DIR=" ${HAKO_INTERFACE_DIR})
 

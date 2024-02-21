@@ -18,7 +18,7 @@
 namespace hako::data {
 
     typedef struct {
-        pid_t                   master_pid;
+        pid_type                master_pid;
         HakoSimulationStateType state;
         HakoTimeSetType         time_usec;
         uint32_t                asset_num;
@@ -68,7 +68,7 @@ namespace hako::data {
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             this->pdu_datap_ = std::make_shared<HakoPduData>(&this->master_datap_->pdu_meta_data, this->shmp_, this->get_shm_type());
         }
-        pid_t get_master_pid()
+        pid_type get_master_pid()
         {
             return this->master_datap_->master_pid;
         }
@@ -216,7 +216,7 @@ namespace hako::data {
         {
             HakoAssetIdType id = -1;
             hako::core::context::HakoContext context;
-            pid_t pid = context.get_pid();
+            pid_type pid = context.get_pid();
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                 if (this->master_datap_->assets[i].type != HakoAsset_Unknown) {
                     if (this->master_datap_->assets_ev[i].pid == pid) {

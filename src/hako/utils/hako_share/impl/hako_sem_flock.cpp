@@ -4,7 +4,11 @@
 //#include "utils/hako_logger.hpp"
 #include "utils/hako_assert.hpp"
 #include <stdlib.h>
+#if WIN32
+#else
 #include <unistd.h>
+#endif
+
 
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1

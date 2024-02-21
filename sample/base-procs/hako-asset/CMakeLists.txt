@@ -10,11 +10,18 @@ add_executable(
     src/hako_asset.cpp
 )
 
+if(MSVC)
+target_link_libraries(
+    hako-asset 
+    hako
+)
+else()
 target_link_libraries(
     hako-asset 
     hako
     -pthread
 )
+endif()
 
 #message(STATUS "HAKO_INTERFACE_DIR=" ${HAKO_INTERFACE_DIR})
 

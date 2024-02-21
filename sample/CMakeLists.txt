@@ -6,4 +6,7 @@ project(hakoniwa-core
 
 add_subdirectory(base-procs/hako-master)
 add_subdirectory(base-procs/hako-asset)
+if(MSVC)
+else()
 add_subdirectory(base-procs/hako-cmd)
+endif()

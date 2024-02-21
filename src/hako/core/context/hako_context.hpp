@@ -8,10 +8,14 @@ namespace hako::core::context {
     public:
         HakoContext()
         {
+#ifdef _WIN32
+            this->pid_ = GetCurrentProcessId();
+#else
             this->pid_ = getpid();
+#endif
         }
 
-        pid_t get_pid()
+        pid_type get_pid()
         {
             return this->pid_;
         }
@@ -20,7 +24,7 @@ namespace hako::core::context {
         {
             return (context.get_pid() == this->get_pid());
         }
-        bool is_same(pid_t pid)
+        bool is_same(pid_type pid)
         {
             return (this->get_pid() == pid);
         }
@@ -28,7 +32,7 @@ namespace hako::core::context {
         virtual ~HakoContext() {}
     
     private:
-        pid_t pid_;
+        pid_type pid_;
     };
 }
 
