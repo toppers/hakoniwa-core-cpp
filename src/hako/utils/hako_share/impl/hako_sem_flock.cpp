@@ -8,12 +8,13 @@
 #else
 #include <unistd.h>
 #endif
-
+#include <mutex>
+static std::mutex mtx;
 
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1
 
-static HakoFlockObjectType *flock_handle;
+thread_local static HakoFlockObjectType *flock_handle;
 static void hako_sem_load(void)
 {
     if (flock_handle != nullptr) {
@@ -52,6 +53,7 @@ static int hako_sem_init(int index, int value)
 static void hako_sem_down(int index)
 {
     int value;
+    std::unique_lock<std::mutex> lock(mtx);
     //pid_t pid = getpid();
     hako_sem_load();
     //printf("sem_down[%d][%lld]: acquire\n", index, pid);
@@ -63,8 +65,10 @@ static void hako_sem_down(int index)
             break;
         }
         hako_flock_release(flock_handle);
+        lock.unlock();
         //printf("sem_down[%d][%lld]: tmp release\n", index, pid);
         usleep(20*1000);
+        lock.lock();
         //printf("sem_down[%d][%lld]: tmp acquire\n", index, pid);
         hako_flock_acquire(flock_handle);
     }
@@ -75,6 +79,7 @@ static void hako_sem_down(int index)
 static void hako_sem_up(int index)
 {
     int value;
+    std::unique_lock<std::mutex> lock(mtx);
     //pid_t pid = getpid();
     hako_sem_load();
     //printf("sem_up[%d][%lld]: acquire\n", index, pid);
