@@ -1,7 +1,11 @@
 #include <hako.hpp>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef WIN32
+#include "windows.h"
+#else
 #include <unistd.h>
+#endif
 #include <signal.h>
 #include <iostream>
 #include <sys/types.h>
@@ -13,6 +17,26 @@ static void hako_cmd_signal_handler(int sig)
     //hako::logger::get("cmd")->info("SIGNAL RECV: {0}", sig);
         printf("SIGNAL RECV: %d\n", sig);
 }
+#ifdef WIN32
+static int read_file_data(char* filepath, int size, char* buffer) {
+    HANDLE hFile = CreateFile(filepath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        printf("ERROR: cannot open file %s\n", filepath);
+        return -1;
+    }
+
+    DWORD bytesRead;
+    BOOL bResult = ReadFile(hFile, buffer, size, &bytesRead, NULL);
+    if (!bResult || bytesRead == 0) {
+        printf("ERROR: cannot read file %s\n", filepath);
+        CloseHandle(hFile);
+        return -1;
+    }
+
+    CloseHandle(hFile);
+    return 0;
+}
+#else
 static int read_file_data(char *filepath, int size, char* buffer)
 {
     int fd = open(filepath, O_RDONLY);
@@ -29,6 +53,7 @@ static int read_file_data(char *filepath, int size, char* buffer)
     close(fd);
     return 0;
 }
+#endif
 
 int main(int argc, const char* argv[])
 {
@@ -115,7 +140,23 @@ int main(int argc, const char* argv[])
         }
         bool ret = hako_sim_ctrl->read_pdu(channel_id, pdu_data, size);
         if (ret) {
+#ifdef WIN32
+            DWORD written;
+            HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (hStdout == INVALID_HANDLE_VALUE) {
+                std::cerr << "Failed to get the standard output handle." << std::endl;
+                free(pdu_data);
+                return 1;
+            }
+
+            BOOL bResult = WriteFile(hStdout, pdu_data, size, &written, NULL);
+            if (!bResult) {
+                std::cerr << "Failed to write data to standard output." << std::endl;
+                return 1;
+            }
+#else
             write(1, pdu_data, size);
+#endif
             free(pdu_data);
         }
         else {
