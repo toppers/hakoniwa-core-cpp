@@ -43,6 +43,8 @@ namespace hako {
         virtual bool is_simulation_mode() = 0;
         virtual bool is_pdu_created() = 0;
 
+        virtual bool write_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len) = 0;
+        virtual bool read_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len) = 0;
         //TODO
         //get asset lists
 

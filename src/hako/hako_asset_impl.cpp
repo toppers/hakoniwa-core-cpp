@@ -183,6 +183,27 @@ bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, cons
         return this->master_data_->get_pdu_data()->read_pdu(asset->id, channel_id, pdu_data, len);
     }
 }
+bool hako::HakoAssetControllerImpl::write_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
+{
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
+    if (real_id >= 0) {
+        return this->master_data_->get_pdu_data()->write_pdu_nolock(real_id, pdu_data, len);
+    }
+    else {
+        return false;
+    }
+}
+
+bool hako::HakoAssetControllerImpl::read_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+{
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robo_name, channel_id);
+    if (real_id >= 0) {
+        return this->master_data_->get_pdu_data()->read_pdu_nolock(real_id, pdu_data, len);
+    }
+    else {
+        return false;
+    }
+}
 
 void hako::HakoAssetControllerImpl::notify_read_pdu_done(const std::string& asset_name)
 {

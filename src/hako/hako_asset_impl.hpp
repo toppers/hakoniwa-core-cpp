@@ -48,6 +48,9 @@ namespace hako {
         bool is_simulation_mode();
         bool is_pdu_created();
 
+        bool write_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
+        bool read_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
+
     private:
         HakoAssetControllerImpl() {}
         bool feedback(const std::string& asset_name, bool isOk, HakoSimulationStateType exp_state);
