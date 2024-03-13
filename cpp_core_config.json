@@ -1,4 +1,4 @@
 {
-    "shm_type": "shm",
+    "shm_type": "mmap",
     "core_mmap_path": "/var/lib/hakoniwa/mmap"
 }
