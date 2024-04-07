@@ -79,6 +79,19 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
     if (asset->callback.start == nullptr) { //polling
         return;
     }
+    if (my_sem.asset_up == nullptr) {
+        HakoConfigType config;
+        hako_config_load(config);
+        if ((config.param == nullptr) || (config.param["shm_type"] == "shm")) {
+            my_sem.asset_up = utils::sem::asset_up;
+            my_sem.asset_down = utils::sem::asset_down;
+        }
+        else {
+            my_sem.asset_up = utils::sem::flock::asset_up;
+            my_sem.asset_down = utils::sem::flock::asset_down;
+        }
+    }
+
     if (!context.is_same(asset_ev->pid)) {
         my_sem.asset_up(master_data->get_semid(), asset_id);
         return;
