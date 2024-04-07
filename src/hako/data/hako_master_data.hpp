@@ -6,11 +6,6 @@
 #include "utils/hako_string.hpp"
 #include "utils/hako_assert.hpp"
 #include "utils/hako_clock.hpp"
-#ifdef WIN32
-#include "utils/hako_share/hako_sem_flock.hpp"
-#else
-#include "utils/hako_share/hako_sem.hpp"
-#endif
 #include "core/context/hako_context.hpp"
 #include "data/hako_pdu_data.hpp"
 #include <string.h>

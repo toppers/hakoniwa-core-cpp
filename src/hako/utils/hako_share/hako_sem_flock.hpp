@@ -1,5 +1,5 @@
-#ifndef _HAKO_SEM_HPP_
-#define _HAKO_SEM_HPP_
+#ifndef _HAKO_SEM_FLOCK_HPP_
+#define _HAKO_SEM_FLOCK_HPP_
 
 #include "types/hako_types.hpp"
 
@@ -12,4 +12,4 @@ namespace hako::utils::sem::flock {
     void asset_up(int32_t sem_id, int32_t asset_id);
 }
 
-#endif /* _HAKO_SEM_HPP_ */
+#endif /* _HAKO_SEM_FLOCK_HPP_ */

@@ -1,15 +1,27 @@
 #include "core/rpc/hako_internal_rpc.hpp"
 #include "core/context/hako_context.hpp"
-#ifdef WIN32
-using hako::utils::sem::flock::asset_up;
-using hako::utils::sem::flock::asset_down;
-#else
-using hako::utils::sem::asset_up;
-using hako::utils::sem::asset_down;
-#endif
+#include "utils/hako_share/hako_sem_flock.hpp"
+#include "utils/hako_share/hako_sem.hpp"
+#include "utils/hako_config_loader.hpp"
+
+typedef struct {
+    void (*asset_up)(int32_t sem_id, int32_t asset_id);
+    void (*asset_down)(int32_t sem_id, int32_t asset_id);
+} SemType;
+static SemType my_sem;
 
 void hako::core::rpc::HakoInternalRpc::register_callback(hako::data::HakoAssetEventType event_id, void (*callback) ())
 {
+    HakoConfigType config;
+    hako_config_load(config);
+    if ((config.param == nullptr) || (config.param["shm_type"] == "shm")) {
+        my_sem.asset_up = utils::sem::asset_up;
+        my_sem.asset_down = utils::sem::asset_down;
+    }
+    else {
+        my_sem.asset_up = utils::sem::flock::asset_up;
+        my_sem.asset_down = utils::sem::flock::asset_down;
+    }
     this->map_.insert(std::make_pair(event_id, callback));
 }
 
@@ -35,7 +47,7 @@ void hako::core::rpc::HakoInternalRpc::stop()
         // nothing to do
     }
     else {
-        asset_up(this->master_data_->get_semid(), this->asset_id_);
+        my_sem.asset_up(this->master_data_->get_semid(), this->asset_id_);
         this->proxy_thread_->join();
         this->proxy_thread_ = nullptr;
     }
@@ -44,7 +56,7 @@ void hako::core::rpc::HakoInternalRpc::proxy_thread()
 {
     HAKO_LOG_INFO("HakoInternalRpc Thread: Start");
     while (true) {
-        asset_down(this->master_data_->get_semid(), this->asset_id_);
+        my_sem.asset_down(this->master_data_->get_semid(), this->asset_id_);
         auto* asset = this->master_data_->get_asset_event_nolock(this->asset_id_);
         if (asset == nullptr) {
             break;
@@ -68,7 +80,7 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
         return;
     }
     if (!context.is_same(asset_ev->pid)) {
-        asset_up(master_data->get_semid(), asset_id);
+        my_sem.asset_up(master_data->get_semid(), asset_id);
         return;
     }
     switch (event_id) {
