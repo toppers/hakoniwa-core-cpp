@@ -1,7 +1,9 @@
 #include "core/rpc/hako_internal_rpc.hpp"
 #include "core/context/hako_context.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
+#ifndef WIN32
 #include "utils/hako_share/hako_sem.hpp"
+#endif
 #include "utils/hako_config_loader.hpp"
 
 typedef struct {
@@ -15,8 +17,13 @@ void hako::core::rpc::HakoInternalRpc::register_callback(hako::data::HakoAssetEv
     HakoConfigType config;
     hako_config_load(config);
     if ((config.param == nullptr) || (config.param["shm_type"] == "shm")) {
+#ifndef WIN32
         my_sem.asset_up = utils::sem::asset_up;
         my_sem.asset_down = utils::sem::asset_down;
+#else
+        my_sem.asset_up = utils::sem::flock::asset_up;
+        my_sem.asset_down = utils::sem::flock::asset_down;
+#endif
     }
     else {
         my_sem.asset_up = utils::sem::flock::asset_up;
@@ -83,8 +90,13 @@ void hako::core::rpc::notify(std::shared_ptr<data::HakoMasterData> master_data, 
         HakoConfigType config;
         hako_config_load(config);
         if ((config.param == nullptr) || (config.param["shm_type"] == "shm")) {
+#ifndef WIN32
             my_sem.asset_up = utils::sem::asset_up;
             my_sem.asset_down = utils::sem::asset_down;
+#else
+            my_sem.asset_up = utils::sem::flock::asset_up;
+            my_sem.asset_down = utils::sem::flock::asset_down;
+#endif
         }
         else {
             my_sem.asset_up = utils::sem::flock::asset_up;
