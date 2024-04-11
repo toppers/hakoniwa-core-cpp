@@ -39,6 +39,18 @@ namespace hako::data {
             HAKO_LOG_INFO("channel_id = %d size = %d ret = %d", channel_id, size, ret);
             return ret;
         }
+        bool is_exist_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id)
+        {
+            for (int channel = 0; channel < this->pdu_meta_data_->channel_num; channel++) {
+                std::shared_ptr<std::string> name = hako::utils ::hako_fixed2string(this->pdu_meta_data_->channel_map[channel].robo_name);
+                if (robo_name == *name) {
+                    if (this->pdu_meta_data_->channel_map[channel].logical_channel_id == channel_id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         bool create_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t size)
         {
             bool ret = true;
@@ -48,6 +60,11 @@ namespace hako::data {
                 return false;
             }
             this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            if (this->is_exist_lchannel(robo_name, channel_id)) {
+                this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+                HAKO_LOG_INFO("INFO: already exist channel: %s %d\n", robo_name.c_str(), channel_id);
+                return false;
+            }
             auto new_channel_id = this->pdu_meta_data_->channel_num;
             if (new_channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 printf("ERROR: pdu chanel is full\n");
