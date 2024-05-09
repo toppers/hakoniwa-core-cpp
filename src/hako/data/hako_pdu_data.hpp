@@ -63,7 +63,7 @@ namespace hako::data {
             if (this->is_exist_lchannel(robo_name, channel_id)) {
                 this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
                 HAKO_LOG_INFO("INFO: already exist channel: %s %d\n", robo_name.c_str(), channel_id);
-                return false;
+                return true;
             }
             auto new_channel_id = this->pdu_meta_data_->channel_num;
             if (new_channel_id >= HAKO_PDU_CHANNEL_MAX) {
