@@ -12,6 +12,11 @@ enable_testing()
 set(HAKO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/hako")
 set(HAKO_INTERFACE_DIR "${PROJECT_SOURCE_DIR}/src/include")
 
+if (DEFINED HAKO_DATA_MAX_ASSET_NUM)
+    add_compile_definitions(HAKO_DATA_MAX_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM})
+    message(STATUS "HAKO_DATA_MAX_ASSET_NUM is redefined with " ${HAKO_DATA_MAX_ASSET_NUM})
+endif()
+
 if (DEFINED HAKO_OPTION_FILEPATH)
     include(${HAKO_OPTION_FILEPATH})
 else()
