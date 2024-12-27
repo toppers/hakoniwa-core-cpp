@@ -13,7 +13,18 @@ endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "/etc/os-release")
+    FetchContent_Declare(
+        json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    )
+else()
+    FetchContent_Declare(
+        json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+endif()
 FetchContent_MakeAvailable(json)
 
 add_library(
