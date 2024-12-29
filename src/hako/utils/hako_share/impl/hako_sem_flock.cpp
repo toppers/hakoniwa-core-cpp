@@ -125,6 +125,7 @@ int32_t hako::utils::sem::flock::create(int32_t key)
 void hako::utils::sem::flock::destroy(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
+    (void)sem_id;
     hako_flock_destroy(flock_handle);
     return;
 }
@@ -132,24 +133,28 @@ void hako::utils::sem::flock::destroy(int32_t sem_id)
 void hako::utils::sem::flock::asset_down(int32_t sem_id, int32_t asset_id)
 {
     HAKO_ASSERT(sem_id >= 0);
+    (void)sem_id;
     hako_sem_down(HAKO_SEM_INX_ASSETS + asset_id);
     return;
 }
 void hako::utils::sem::flock::asset_up(int32_t sem_id, int32_t asset_id)
 {
     HAKO_ASSERT(sem_id >= 0);
+    (void)sem_id;
     hako_sem_up(HAKO_SEM_INX_ASSETS + asset_id);
     return;
 }
 void hako::utils::sem::flock::master_lock(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
+    (void)sem_id;    
     hako_sem_down(HAKO_SEM_INX_MASTER);
     return;
 }
 void hako::utils::sem::flock::master_unlock(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
+    (void)sem_id;
     hako_sem_up(HAKO_SEM_INX_MASTER);
     return;
 }

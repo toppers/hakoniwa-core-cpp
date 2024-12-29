@@ -53,6 +53,7 @@ namespace hako::data {
             this->shmp_ = hako::utils::hako_shared_memory_create(this->shm_type_);
             auto shmid = this->shmp_->create_memory(HAKO_SHARED_MEMORY_ID_0, sizeof(HakoMasterDataType));
             HAKO_ASSERT(shmid >= 0);
+            (void)shmid;
             void *datap = this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             {

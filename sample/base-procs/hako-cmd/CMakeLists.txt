@@ -13,8 +13,14 @@ add_executable(
 target_link_libraries(
     hako-cmd 
     hako
-    -pthread
 )
+
+if (NOT WIN32)
+    target_link_libraries(
+        hako-cmd 
+        -pthread
+    )
+endif()
 
 #message(STATUS "HAKO_INTERFACE_DIR=" ${HAKO_INTERFACE_DIR})
 

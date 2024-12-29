@@ -309,6 +309,7 @@ namespace hako::data {
             std::cout << "START CREATE PDU DATA: total_size= " << total_size << std::endl;
             auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             HAKO_ASSERT(shmid >= 0);
+            (void)shmid;
             void *datap = this->asset_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
             this->pdu_ = static_cast<char*>(datap);
             {
