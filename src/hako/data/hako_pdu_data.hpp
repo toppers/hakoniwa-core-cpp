@@ -120,6 +120,9 @@ namespace hako::data {
         bool is_pdu_rbusy(HakoPduChannelIdType channel_id)
         {
             bool ret = false;
+            if (this->pdu_meta_data_->is_rbusy_for_external[channel_id]) {
+                return true;
+            }
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                 if (this->pdu_meta_data_->is_rbusy[i][channel_id]) {
                     ret = true;
@@ -135,6 +138,10 @@ namespace hako::data {
         void set_pdu_rbusy_status(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, bool busy_status)
         {
             this->pdu_meta_data_->is_rbusy[asset_id][channel_id] = busy_status;
+        }
+        void set_pdu_rbusy_status_for_external(HakoPduChannelIdType channel_id, bool busy_status)
+        {
+            this->pdu_meta_data_->is_rbusy_for_external[channel_id] = busy_status;
         }
         /*
          * writers: only one!
@@ -196,6 +203,35 @@ namespace hako::data {
             memcpy(pdu_data, &this->pdu_[off], len);
             this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] = this->pdu_meta_data_->pdu_write_version[channel_id];
             this->set_pdu_rbusy_status(asset_id, channel_id, false);
+            return true;
+        }
+        bool read_pdu_for_external(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
+        {
+            if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
+                HAKO_LOG_ERROR("channel_id >= MAX(%d) channel_id = %d len = %d", HAKO_PDU_CHANNEL_MAX, channel_id, len);
+                return false;
+            }
+            else if (len > this->pdu_meta_data_->channel[channel_id].size) {
+                HAKO_LOG_ERROR("len > channel_size(%d) channel_id = %d len = %d", this->pdu_meta_data_->channel[channel_id].size, channel_id, len);
+                return false;
+            }
+            else if (this->pdu_ == nullptr) {
+                this->load();
+            }
+            //READER wait until WRITER has done with rbusy flag=false 
+            //in order to avoid deadlock situation for waiting each other...
+            while (true) {
+                this->set_pdu_rbusy_status_for_external(channel_id, true);
+                if (this->is_pdu_wbusy(channel_id)) {
+                    this->set_pdu_rbusy_status_for_external(channel_id, false);
+                    //usleep(1000); /* 1msec sleep */
+                    continue;
+                }
+                break;
+            }
+            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            memcpy(pdu_data, &this->pdu_[off], len);
+            this->set_pdu_rbusy_status_for_external(channel_id, false);
             return true;
         }
         bool read_pdu_nolock(HakoPduChannelIdType channel_id, char *pdu_data, size_t len)

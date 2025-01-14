@@ -41,7 +41,9 @@ namespace hako {
         HakoPduChannelIdType get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id);
         bool is_pdu_dirty(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id);
         bool write_pdu(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
+        bool write_pdu_for_external(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len);
         bool read_pdu(const std::string& asset_name, const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
+        bool read_pdu_for_external(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len);
         void notify_read_pdu_done(const std::string& asset_name);
         void notify_write_pdu_done(const std::string& asset_name);
         bool is_pdu_sync_mode(const std::string& asset_name);
