@@ -8,6 +8,9 @@
 #include "utils/hako_clock.hpp"
 #include "core/context/hako_context.hpp"
 #include "data/hako_pdu_data.hpp"
+#ifdef HAKO_CORE_EXTENSION
+#include "hako_extension.hpp"
+#endif
 #include <string.h>
 
 namespace hako::data {
@@ -97,6 +100,11 @@ namespace hako::data {
         void destroy()
         {
             if (this->shmp_ != nullptr) {
+#ifdef HAKO_CORE_EXTENSION
+                if (this->master_ext_ != nullptr) {
+                    this->master_ext_->on_pdu_data_destroy();
+                }
+#endif
                 this->pdu_datap_->destroy();
                 this->shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_0);
                 this->master_datap_ = nullptr;
@@ -335,12 +343,22 @@ namespace hako::data {
         }
         void destroy_pdu_data()
         {
+#ifdef HAKO_CORE_EXTENSION
+            if (this->master_ext_ != nullptr) {
+                this->master_ext_->on_pdu_data_reset();
+            }
+#endif
             this->pdu_datap_->reset();
             //this->pdu_datap_->destroy();
         }
         void create_pdu_data()
         {
             this->pdu_datap_->create(this->master_datap_->asset_num);
+#ifdef HAKO_CORE_EXTENSION
+            if (this->master_ext_ != nullptr) {
+                this->master_ext_->on_pdu_data_create();
+            }
+#endif
         }
         void print_master_data()
         {
@@ -410,12 +428,36 @@ namespace hako::data {
                 std::cout << std::string(this->master_datap_->log.data[i]) << std::endl;
             }
         }
+#ifdef HAKO_CORE_EXTENSION
+        void register_master_extension(std::shared_ptr<extension::IHakoMasterExtension> ext)
+        {
+            std::cout << "INFO: register_master_extension()" << std::endl;
+            this->master_ext_ = ext;
+        }
+        void register_asset_extension(std::shared_ptr<extension::IHakoAssetExtension> aext)
+        {
+            std::cout << "INFO: register_asset_extension()" << std::endl;
+            this->pdu_datap_->register_asset_extension(aext);
+            this->pdu_datap_->register_master_extension(master_ext_);
+        }
+        std::shared_ptr<extension::IHakoMasterExtension> get_master_extension()
+        {
+            return this->master_ext_;
+        }
+        std::shared_ptr<extension::IHakoAssetExtension> get_asset_extension()
+        {
+            return this->pdu_datap_->get_asset_extension();
+        }
+#endif
     private:
         std::shared_ptr<hako::utils::HakoSharedMemory>  shmp_;
         HakoMasterDataType *master_datap_ = nullptr;
         std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
         std::string shm_type_;
         bool is_master_locked = false;
+#ifdef HAKO_CORE_EXTENSION
+        std::shared_ptr<extension::IHakoMasterExtension> master_ext_ = nullptr;
+#endif
     };
 }
 

@@ -3,7 +3,10 @@
 
 #include <string>
 #include "types/hako_types.hpp"
-
+#ifdef HAKO_CORE_EXTENSION
+#include <memory>
+#include "hako_extension.hpp"
+#endif
 namespace hako {
 
     class IHakoAssetController {
@@ -49,7 +52,10 @@ namespace hako {
         virtual bool read_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len) = 0;
         //TODO
         //get asset lists
-
+#ifdef HAKO_CORE_EXTENSION
+        virtual bool register_asset_extension(std::shared_ptr<extension::IHakoAssetExtension> extension) = 0;
+        virtual std::shared_ptr<extension::IHakoAssetExtension> get_asset_extension() = 0;
+#endif
     };
 }
 

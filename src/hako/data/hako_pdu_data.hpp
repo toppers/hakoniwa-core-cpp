@@ -6,6 +6,9 @@
 #include <string.h>
 #include <iostream>
 #include "hako_log.hpp"
+#ifdef HAKO_CORE_EXTENSION
+#include "hako_extension.hpp"
+#endif
 
 namespace hako::data {
     class HakoPduData {
@@ -146,6 +149,21 @@ namespace hako::data {
         /*
          * writers: only one!
          */
+#ifdef HAKO_CORE_EXTENSION
+        bool write_pdu_spin_lock(HakoPduChannelIdType channel_id)
+        {
+            this->set_pdu_wbusy_status(channel_id, true);
+            while (this->is_pdu_rbusy(channel_id)) {
+                //usleep(1000); /* 1msec sleep */
+            }
+            return true;
+        }
+        bool write_pdu_spin_unlock(HakoPduChannelIdType channel_id)
+        {
+            this->set_pdu_wbusy_status(channel_id, false);
+            return true;
+        }
+#endif
         bool write_pdu(HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
         {
             //printf("write_pdu: channel_id=%d len=%zu size=%zu\n", channel_id, len, this->pdu_meta_data_->channel[channel_id].size);
@@ -168,6 +186,12 @@ namespace hako::data {
             memcpy(&this->pdu_[off], &pdu_data[0], len);
             this->pdu_meta_data_->is_dirty[channel_id] = true;
             this->pdu_meta_data_->pdu_write_version[channel_id]++;
+
+#ifdef HAKO_CORE_EXTENSION
+            if (this->asset_extension_ != nullptr) {
+                this->asset_extension_->on_pdu_data_write(channel_id);
+            }
+#endif
             this->set_pdu_wbusy_status(channel_id, false);
             return true;
         }
@@ -175,6 +199,63 @@ namespace hako::data {
         /*
          * readers: only one!
          */
+#ifdef HAKO_CORE_EXTENSION
+        bool read_pdu_spin_lock(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
+        {
+            if (asset_id >= 0) {
+                return this->read_pdu_for_asset_spin_lock(asset_id, channel_id);
+            }
+            else {
+                return this->read_pdu_for_external_spin_lock(channel_id);
+            }
+        }
+        bool read_pdu_spin_unlock(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
+        {
+            if (asset_id >= 0) {
+                return this->read_pdu_for_asset_spin_unlock(asset_id, channel_id);
+            }
+            else {
+                return this->read_pdu_for_external_spin_unlock(channel_id);
+            }
+        }
+
+        bool read_pdu_for_asset_spin_lock(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
+        {
+            while (true) {
+                this->set_pdu_rbusy_status(asset_id, channel_id, true);
+                if (this->is_pdu_wbusy(channel_id)) {
+                    this->set_pdu_rbusy_status(asset_id, channel_id, false);
+                    //usleep(1000); /* 1msec sleep */
+                    continue;
+                }
+                break;
+            }
+            return true;
+        }
+        bool read_pdu_for_asset_spin_unlock(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
+        {
+            this->set_pdu_rbusy_status(asset_id, channel_id, false);
+            return true;
+        }
+        bool read_pdu_for_external_spin_lock(HakoPduChannelIdType channel_id)
+        {
+            while (true) {
+                this->set_pdu_rbusy_status_for_external(channel_id, true);
+                if (this->is_pdu_wbusy(channel_id)) {
+                    this->set_pdu_rbusy_status_for_external(channel_id, false);
+                    //usleep(1000); /* 1msec sleep */
+                    continue;
+                }
+                break;
+            }            
+            return true;
+        }
+        bool read_pdu_for_external_spin_unlock(HakoPduChannelIdType channel_id)
+        {
+            this->set_pdu_rbusy_status_for_external(channel_id, false);
+            return true;
+        }
+#endif
         bool read_pdu(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
         {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
@@ -231,6 +312,11 @@ namespace hako::data {
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
+#ifdef HAKO_CORE_EXTENSION
+            if (this->asset_extension_ != nullptr) {
+                this->asset_extension_->on_pdu_data_write(channel_id);
+            }
+#endif
             this->set_pdu_rbusy_status_for_external(channel_id, false);
             return true;
         }
@@ -421,6 +507,12 @@ namespace hako::data {
             }
             HAKO_LOG_INFO("LOADED PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
+#ifdef HAKO_CORE_EXTENSION
+            std::cout << "INFO: HakoMasterData::load() called: master_ext_ = " << this->master_ext_ << std::endl;
+            if (this->master_ext_ != nullptr) {
+                this->master_ext_->on_pdu_data_load();
+            }
+#endif
             return true;
         }
         ssize_t pdu_total_size()
@@ -444,9 +536,27 @@ namespace hako::data {
                 this->pdu_ = nullptr;
             }
        }
+#ifdef HAKO_CORE_EXTENSION
+        void register_asset_extension(std::shared_ptr<extension::IHakoAssetExtension> asset_extension)
+        {
+            this->asset_extension_ = asset_extension;
+        }
+        void register_master_extension(std::shared_ptr<extension::IHakoMasterExtension> master_ext)
+        {
+            this->master_ext_ = master_ext;
+        }
+        std::shared_ptr<extension::IHakoAssetExtension> get_asset_extension()
+        {
+            return this->asset_extension_;
+        }
+#endif
     private:
         char*               pdu_;
         HakoPduMetaDataType *pdu_meta_data_ = nullptr;
+#ifdef HAKO_CORE_EXTENSION
+        std::shared_ptr<extension::IHakoAssetExtension> asset_extension_ = nullptr;
+        std::shared_ptr<extension::IHakoMasterExtension> master_ext_ = nullptr;
+#endif
         /**
          * TODO
          * なぜかmaster_shmp_にHAKO_SHARED_MEMORY_ID_1を追加しようとすると

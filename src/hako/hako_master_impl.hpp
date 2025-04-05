@@ -15,10 +15,11 @@ namespace hako {
             this->master_data_ = ptr;
             this->sim_event_ = std::make_shared<hako::HakoSimulationEventController>(ptr);
         }
-        virtual bool execute();
-        virtual void set_config_simtime(HakoTimeType max_delay_time_usec, HakoTimeType delta_time_usec);
-        virtual HakoTimeType get_max_deltay_time_usec();
-        virtual HakoTimeType get_delta_time_usec();
+        virtual bool execute() override;
+        virtual void set_config_simtime(HakoTimeType max_delay_time_usec, HakoTimeType delta_time_usec) override;
+        virtual HakoTimeType get_max_deltay_time_usec() override;
+        virtual HakoTimeType get_delta_time_usec() override;
+
     private:
         HakoMasterControllerImpl() {}
         std::shared_ptr<hako::core::simulation::time::TheWorld> theWorld_;
