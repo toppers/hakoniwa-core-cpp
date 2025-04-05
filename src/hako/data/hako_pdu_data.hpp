@@ -444,6 +444,11 @@ namespace hako::data {
                 memset(this->pdu_, 0, total_size);
             }
             this->asset_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
+#ifdef HAKO_CORE_EXTENSION
+            if (this->master_ext_ != nullptr) {
+                this->master_ext_->on_pdu_data_create();
+            }
+#endif
             std::cout << "PDU DATA CREATED" << std::endl;
             printf("CREATED ADDR=%p\n", datap);
             HAKO_LOG_INFO("CREATED ADDR=%p", datap);

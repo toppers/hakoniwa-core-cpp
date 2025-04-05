@@ -354,11 +354,6 @@ namespace hako::data {
         void create_pdu_data()
         {
             this->pdu_datap_->create(this->master_datap_->asset_num);
-#ifdef HAKO_CORE_EXTENSION
-            if (this->master_ext_ != nullptr) {
-                this->master_ext_->on_pdu_data_create();
-            }
-#endif
         }
         void print_master_data()
         {
