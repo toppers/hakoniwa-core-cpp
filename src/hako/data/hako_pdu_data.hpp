@@ -433,7 +433,6 @@ namespace hako::data {
             HAKO_ASSERT(shmid >= 0);
             (void)shmid;
             void *datap = this->asset_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
-            this->pdu_ = static_cast<char*>(datap);
             {
                 int off = 0;
                 this->pdu_meta_data_->asset_num = asset_num;
@@ -441,7 +440,7 @@ namespace hako::data {
                     this->pdu_meta_data_->channel[i].offset = off;
                     off += this->pdu_meta_data_->channel[i].size;
                 }
-                memset(this->pdu_, 0, total_size);
+                memset(datap, 0, total_size);
             }
             this->asset_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
 #ifdef HAKO_CORE_EXTENSION
@@ -449,6 +448,7 @@ namespace hako::data {
                 this->master_ext_->on_pdu_data_create();
             }
 #endif
+            this->pdu_ = static_cast<char*>(datap);
             std::cout << "PDU DATA CREATED" << std::endl;
             printf("CREATED ADDR=%p\n", datap);
             HAKO_LOG_INFO("CREATED ADDR=%p", datap);
@@ -507,17 +507,17 @@ namespace hako::data {
             if (datap == nullptr) {
                 return false;
             }
-            if (is_debug) {
-                std::cout << "LOADED: PDU DATA" << std::endl;
-            }
-            HAKO_LOG_INFO("LOADED PDU DATA");
-            this->pdu_ = static_cast<char*>(datap);
 #ifdef HAKO_CORE_EXTENSION
             std::cout << "INFO: HakoMasterData::load() called: master_ext_ = " << this->master_ext_ << std::endl;
             if (this->master_ext_ != nullptr) {
                 this->master_ext_->on_pdu_data_load();
             }
 #endif
+            if (is_debug) {
+                std::cout << "LOADED: PDU DATA" << std::endl;
+            }
+            HAKO_LOG_INFO("LOADED PDU DATA");
+            this->pdu_ = static_cast<char*>(datap);
             return true;
         }
         ssize_t pdu_total_size()
