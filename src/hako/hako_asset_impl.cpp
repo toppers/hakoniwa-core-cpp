@@ -148,7 +148,8 @@ bool hako::HakoAssetControllerImpl::is_pdu_dirty(const std::string& asset_name, 
         return this->master_data_->get_pdu_data()->is_pdu_dirty(asset->id, real_id);
     }
     else {
-        return this->master_data_->get_pdu_data()->is_pdu_dirty(asset->id, channel_id);
+        HAKO_LOG_ERROR("is_pdu_dirty: can not find pdu channel: robo_name=%s channel_id=%d", robo_name.c_str(), channel_id);
+        return false;
     }
 }
 
@@ -164,7 +165,8 @@ bool hako::HakoAssetControllerImpl::write_pdu(const std::string& asset_name, con
         return this->master_data_->get_pdu_data()->write_pdu(real_id, pdu_data, len);
     }
     else {
-        return this->master_data_->get_pdu_data()->write_pdu(channel_id, pdu_data, len);
+        HAKO_LOG_ERROR("write_pdu: can not find pdu channel: robo_name=%s channel_id=%d", robo_name.c_str(), channel_id);
+        return false;
     }
 }
 bool hako::HakoAssetControllerImpl::write_pdu_for_external(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
@@ -174,7 +176,8 @@ bool hako::HakoAssetControllerImpl::write_pdu_for_external(const std::string& ro
         return this->master_data_->get_pdu_data()->write_pdu(real_id, pdu_data, len);
     }
     else {
-        return this->master_data_->get_pdu_data()->write_pdu(channel_id, pdu_data, len);
+        HAKO_LOG_ERROR("write_pdu_for_external: can not find pdu channel: robo_name=%s channel_id=%d", robo_name.c_str(), channel_id);
+        return false;
     }
 }
 
@@ -190,7 +193,8 @@ bool hako::HakoAssetControllerImpl::read_pdu(const std::string& asset_name, cons
         return this->master_data_->get_pdu_data()->read_pdu(asset->id, real_id, pdu_data, len);
     }
     else {
-        return this->master_data_->get_pdu_data()->read_pdu(asset->id, channel_id, pdu_data, len);
+        HAKO_LOG_ERROR("read_pdu: can not find pdu channel: robo_name=%s channel_id=%d", robo_name.c_str(), channel_id);
+        return false;
     }
 }
 bool hako::HakoAssetControllerImpl::read_pdu_for_external(const std::string& robo_name, HakoPduChannelIdType channel_id, char *pdu_data, size_t len)
@@ -200,7 +204,8 @@ bool hako::HakoAssetControllerImpl::read_pdu_for_external(const std::string& rob
         return this->master_data_->get_pdu_data()->read_pdu_for_external(real_id, pdu_data, len);
     }
     else {
-        return this->master_data_->get_pdu_data()->read_pdu_for_external(channel_id, pdu_data, len);
+        HAKO_LOG_ERROR("read_pdu_for_external: can not find pdu channel: robo_name=%s channel_id=%d", robo_name.c_str(), channel_id);
+        return false;
     }
 }
 bool hako::HakoAssetControllerImpl::write_pdu_nolock(const std::string& robo_name, HakoPduChannelIdType channel_id, const char *pdu_data, size_t len)
