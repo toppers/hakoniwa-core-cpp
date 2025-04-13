@@ -4,6 +4,7 @@ namespace hako::extension {
     class IHakoAssetExtension {
         public:
             virtual ~IHakoAssetExtension() {}
+            virtual bool on_pdu_data_before_write(int real_channel_id) = 0;
             virtual bool on_pdu_data_write(int real_channel_id) = 0;
     };
     

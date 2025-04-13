@@ -182,6 +182,14 @@ namespace hako::data {
             while (this->is_pdu_rbusy(channel_id)) {
                 //usleep(1000); /* 1msec sleep */
             }
+#ifdef HAKO_CORE_EXTENSION
+            if (this->asset_extension_ != nullptr) {
+                if (this->asset_extension_->on_pdu_data_before_write(channel_id) == false) {
+                    this->set_pdu_wbusy_status(channel_id, false);
+                    return false;    
+                }
+            }
+#endif
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], &pdu_data[0], len);
             this->pdu_meta_data_->is_dirty[channel_id] = true;
@@ -312,11 +320,6 @@ namespace hako::data {
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
-#ifdef HAKO_CORE_EXTENSION
-            if (this->asset_extension_ != nullptr) {
-                this->asset_extension_->on_pdu_data_write(channel_id);
-            }
-#endif
             this->set_pdu_rbusy_status_for_external(channel_id, false);
             return true;
         }
