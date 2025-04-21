@@ -12,7 +12,11 @@ bool hako::HakoMasterControllerImpl::execute()
     bool is_changed = this->sim_event_->do_event_handling(prev, next);
     if (is_changed) {
         if ((prev == HakoSim_Runnable) && (next == HakoSim_Running)) {
+#ifdef FIX_PDU_CREATE_TIMING
+            // nothing to do
+#else
             this->master_data_->create_pdu_data();
+#endif
         }
         else if ((prev == HakoSim_Resetting) && (next == HakoSim_Stopped)) {
             this->master_data_->lock();

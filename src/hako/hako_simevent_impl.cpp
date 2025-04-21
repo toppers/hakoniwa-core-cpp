@@ -174,6 +174,11 @@ void hako::HakoSimulationEventController::do_event_handling_timeout_nolock(std::
 
 void hako::HakoSimulationEventController::publish_event_nolock(hako::data::HakoAssetEventType event)
 {
+#ifdef FIX_PDU_CREATE_TIMING
+    if (event == hako::data::HakoAssetEvent_Start) {
+        this->master_data_->create_pdu_data();
+    }
+#endif
     for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
         hako::data::HakoAssetEntryType* entry = this->master_data_->get_asset(i);
         if (entry == nullptr) {
