@@ -43,24 +43,17 @@ sequenceDiagram
     activate PduData
     note over MasterData,PduData: PDUデータ領域を確保
 
+    Master->>Asset: start_callback()
+    Asset->>Master: start_feedback()
+
     loop シミュレーション実行中
         Asset-->>PduData: read_pdu() / write_pdu()
     end
 
     Cmd->>Master: stop()
     note right of Master: シミュレーションを停止
-
-    Cmd->>Master: hako::destroy()
-    Master->>MasterData: destroy_pdu_data()
-    PduData-->>MasterData: destroyed
-    deactivate PduData
-    note over Master,MasterData: PDUデータ領域を破棄
-
-    Master-->>MasterData: destroyed
-    deactivate MasterData
-    note over Master,MasterData: Masterデータ領域を破棄
-    deactivate Master
-
+    Master->>Asset: stop_callback()
+    Asset->>Master: stop_feedback()
 ```
 
 
