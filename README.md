@@ -15,41 +15,55 @@ Hakoniwa-core-cpp は **シミュレーションハブの本体** となるコ�
 
 ## Simulation Flow
 The following sequence diagram outlines how each component interacts during a
-typical run. PlantUML can be used to render the diagram.
+typical run.
 
-```plantuml
-@startuml
-actor "HakoCommand" as Cmd
-participant "HakoMaster" as Master
-participant "HakoAsset" as Asset
-participant "IHakoMasterController" as MasterCtrl
-participant "IHakoAssetController" as AssetCtrl
-participant "IHakoSimulationEventController" as SimCtrl
+```mermaid
+sequenceDiagram
+    actor Cmd as HakoCommand
+    participant Master as HakoMaster
+    participant Asset as HakoAsset
+    participant MasterData as "Master Data"
+    participant PduData as "PDU Data"
 
-Cmd -> Master: hako::init()
-Master -> Master: hako::create_master() --> MasterCtrl
-MasterCtrl -> MasterCtrl: set_config_simtime()
+    Cmd->>Master: hako::init()
+    activate Master
+    Master->>MasterData: create()
+    activate MasterData
+    note over Master,MasterData: Masterデータ領域を確保
 
-Asset -> Asset: hako::create_asset_controller() --> AssetCtrl
-AssetCtrl -> AssetCtrl: create_pdu_lchannel()
-AssetCtrl -> AssetCtrl: asset_register()
+    Asset->>Master: asset_register()
+    Master->>MasterData: アセット情報を登録
+    Asset->>MasterData: create_pdu_lchannel()
+    note left of Asset: PDUチャネルを定義
 
-Cmd -> Cmd: hako::get_simevent_controller() --> SimCtrl
-Cmd -> SimCtrl: start()
+    Cmd->>Master: start()
+    note right of Master: シミュレーションをRunnable状態へ
+    Master->>MasterData: create_pdu_data()
+    MasterData->>PduData: create()
+    activate PduData
+    note over MasterData,PduData: PDUデータ領域を確保
 
-loop シミュレーション中
-    Master -> MasterCtrl: execute()
-    Asset -> AssetCtrl: is_simulation_mode()
-    Asset -> AssetCtrl: notify_simtime()
-    Asset -> AssetCtrl: read_pdu()/write_pdu()
-end
+    loop シミュレーション実行中
+        Asset-->>PduData: read_pdu() / write_pdu()
+    end
 
-Cmd -> SimCtrl: stop()
-Cmd -> Cmd: hako::destroy()
-Master -> Master: hako::destroy()
-Asset -> Asset: hako::destroy()
-@enduml
+    Cmd->>Master: stop()
+    note right of Master: シミュレーションを停止
+
+    Cmd->>Master: hako::destroy()
+    Master->>MasterData: destroy_pdu_data()
+    PduData-->>MasterData: destroyed
+    deactivate PduData
+    note over Master,MasterData: PDUデータ領域を破棄
+
+    Master-->>MasterData: destroyed
+    deactivate MasterData
+    note over Master,MasterData: Masterデータ領域を破棄
+    deactivate Master
+
 ```
+
+
 
 ## Required
 - If Using Google Test
