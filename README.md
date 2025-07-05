@@ -7,6 +7,7 @@ Hakoniwa-core-cpp は **シミュレーションハブの本体** となるコ�
 ## Documentation
 - [API Specification](API_SPEC.md)
 - [Shared Memory Layout](SHARED_MEMORY_SPEC.md)
+- [English Documentation](docs/README_EN.md)
 
 ## Stack Overview
 1. Shared memory layer manages master data and PDU buffers.
