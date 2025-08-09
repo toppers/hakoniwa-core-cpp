@@ -176,7 +176,12 @@ namespace hako::data {
                 return false;
             }
             else if (this->pdu_ == nullptr) {
+#ifdef FIX_PDU_CREATE_TIMING
+                HAKO_LOG_ERROR("PDU is not created yet");
+                return false;
+#else
                 this->load();
+#endif
             }
             this->set_pdu_wbusy_status(channel_id, true);
             while (this->is_pdu_rbusy(channel_id)) {
@@ -275,7 +280,12 @@ namespace hako::data {
                 return false;
             }
             else if (this->pdu_ == nullptr) {
+#ifdef FIX_PDU_CREATE_TIMING
+                HAKO_LOG_ERROR("PDU is not created yet");
+                return false;
+#else
                 this->load();
+#endif
             }
             //READER wait until WRITER has done with rbusy flag=false 
             //in order to avoid deadlock situation for waiting each other...
@@ -419,6 +429,9 @@ namespace hako::data {
          */
         void create(uint32_t asset_num)
         {
+#ifdef FIX_PDU_CREATE_TIMING
+            HAKO_LOG_INFO("PDU CREATE: asset_num = %d %p", asset_num, this->pdu_);
+#else
             HAKO_LOG_INFO("PDU CREATE: asset_num = %d", asset_num);
             if (this->pdu_ != nullptr) {
                 this->pdu_meta_data_->asset_num = asset_num;
@@ -427,6 +440,7 @@ namespace hako::data {
                 HAKO_LOG_INFO("ALREADY CREATED PDU DATA");
                 return;
             }
+#endif
             this->pdu_meta_data_->mode = HakoTimeMode_Asset;
 
             ssize_t total_size = this->pdu_total_size();
