@@ -28,4 +28,6 @@ jobs:
 
       - name: Build and Test
         shell: bash
-        run: bash ./build.bash test
+        run: |
+          bash ./build.bash test
+          cat cmake-build/Testing/Temporary/LastTest.log
