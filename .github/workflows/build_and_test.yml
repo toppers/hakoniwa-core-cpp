@@ -1,24 +1,31 @@
 name: Hakoniwa-core-cpp
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.13
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.28.x'
 
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Get DateTime
-      id: date
-      run: echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Get DateTime
+        id: date
+        run: echo "date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
 
-    - name: Build and Test
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgtest-dev
-        bash ./build.bash test
-      shell: bash
+      - name: Install deps (gtest)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build libgtest-dev
+          sudo cmake -S /usr/src/googletest -B /usr/src/googletest/build
+          sudo cmake --build /usr/src/googletest/build
+          sudo cmake --install /usr/src/googletest/build
+
+      - name: Build and Test
+        shell: bash
+        run: bash ./build.bash test
