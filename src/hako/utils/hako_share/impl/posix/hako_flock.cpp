@@ -23,7 +23,11 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
             printf("ERROR: can not create flock file:%s\n", filepath.c_str());
             return nullptr;
         }
-        ftruncate(fd, sizeof(int) * HAKO_CONFIG_MAX_SEM);
+        if (ftruncate(fd, sizeof(int) * HAKO_CONFIG_MAX_SEM) < 0) {
+            perror("ftruncate");
+            close(fd);
+            return nullptr;
+        }
         close(fd);
         printf("INFO: CREATED FLOCK FILE: %s\n", filepath.c_str());
     }

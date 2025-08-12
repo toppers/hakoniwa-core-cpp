@@ -24,7 +24,11 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
             printf("ERROR: can not create mmap file:%s\n", filepath.c_str());
             return nullptr;
         }
-        (void)truncate(filepath.c_str(), size);
+        if (truncate(filepath.c_str(), size) != 0) {
+            perror("ftruncate");
+            close(fd);
+            return nullptr;
+        }
         close(fd);
         //printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
     }
