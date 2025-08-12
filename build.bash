@@ -44,7 +44,7 @@ then
     fi
 
     make
-    make test
+    make test -d
 else
     if [ ${OS_TYPE} = "posix" ]
     then
