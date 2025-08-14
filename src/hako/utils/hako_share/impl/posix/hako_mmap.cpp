@@ -19,18 +19,19 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
     struct stat stbuf;
     int ret = stat(filepath.c_str(), &stbuf);
     if ((ret < 0) || (stbuf.st_size < size)) {
-        int fd = open(filepath.c_str(), O_CREAT | O_RDWR, 0644);
+        int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0644);
         if (fd < 0) {
             printf("ERROR: can not create mmap file:%s\n", filepath.c_str());
             return nullptr;
         }
-        if (ftruncate(fd, size) != 0) {
+        if (truncate(filepath.c_str(), size) != 0) {
+            printf("ERROR: can not set size of mmap file:%s\n", filepath.c_str());
             perror("ftruncate");
             close(fd);
             return nullptr;
         }
         close(fd);
-        //printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
+        printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
     }
     handle->mmap_obj.obj = handle;
     handle->size = size;

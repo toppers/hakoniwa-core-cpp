@@ -18,12 +18,13 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
     struct stat stbuf;
     int ret = stat(filepath.c_str(), &stbuf);
     if (ret < 0) {
-        int fd = open(filepath.c_str(), O_CREAT | O_TRUNC, 0644);
+        int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0644);
         if (fd < 0) {
             printf("ERROR: can not create flock file:%s\n", filepath.c_str());
             return nullptr;
         }
         if (ftruncate(fd, sizeof(int) * HAKO_CONFIG_MAX_SEM) < 0) {
+            printf("ERROR: can not set size of flock file:%s\n", filepath.c_str());
             perror("ftruncate");
             close(fd);
             return nullptr;

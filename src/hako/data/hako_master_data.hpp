@@ -58,6 +58,7 @@ namespace hako::data {
             HAKO_ASSERT(shmid >= 0);
             (void)shmid;
             void *datap = this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            HAKO_ASSERT(datap != nullptr);
             this->master_datap_ = static_cast<HakoMasterDataType*>(datap);
             {
                 hako::core::context::HakoContext context;
