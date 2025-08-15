@@ -23,17 +23,22 @@ static inline void hako_cpu_relax_backoff(int& spins) {
 }
 
 static inline bool hako_atomic_load_bool(const bool* p) {
-#if __cpp_lib_atomic_ref
+#if defined(_MSC_VER)
+  std::atomic_ref<const bool> a(*p);
+  return a.load(std::memory_order_acquire);
+#elif defined(__cpp_lib_atomic_ref)
   std::atomic_ref<const bool> a(*p);
   return a.load(std::memory_order_acquire);
 #else
-  // GCC/Clangなら __atomic_load_n でもOK
   return __atomic_load_n(p, __ATOMIC_ACQUIRE);
 #endif
 }
 
 static inline void hako_atomic_store_bool(bool* p, bool v) {
-#if __cpp_lib_atomic_ref
+#if defined(_MSC_VER)
+  std::atomic_ref<bool> a(*p);
+  a.store(v, std::memory_order_release);
+#elif defined(__cpp_lib_atomic_ref)
   std::atomic_ref<bool> a(*p);
   a.store(v, std::memory_order_release);
 #else
@@ -42,7 +47,10 @@ static inline void hako_atomic_store_bool(bool* p, bool v) {
 }
 
 static inline uint32_t hako_atomic_load_u32(const uint32_t* p) {
-#if __cpp_lib_atomic_ref
+#if defined(_MSC_VER)
+  std::atomic_ref<const uint32_t> a(*p);
+  return a.load(std::memory_order_acquire);
+#elif defined(__cpp_lib_atomic_ref)
   std::atomic_ref<const uint32_t> a(*p);
   return a.load(std::memory_order_acquire);
 #else
@@ -51,7 +59,10 @@ static inline uint32_t hako_atomic_load_u32(const uint32_t* p) {
 }
 
 static inline void hako_atomic_store_u32(uint32_t* p, uint32_t v) {
-#if __cpp_lib_atomic_ref
+#if defined(_MSC_VER)
+  std::atomic_ref<uint32_t> a(*p);
+  a.store(v, std::memory_order_release);
+#elif defined(__cpp_lib_atomic_ref)
   std::atomic_ref<uint32_t> a(*p);
   a.store(v, std::memory_order_release);
 #else
@@ -60,7 +71,10 @@ static inline void hako_atomic_store_u32(uint32_t* p, uint32_t v) {
 }
 
 static inline uint32_t hako_atomic_fetch_add_u32(uint32_t* p, uint32_t inc = 1) {
-#if __cpp_lib_atomic_ref
+#if defined(_MSC_VER)
+  std::atomic_ref<uint32_t> a(*p);
+  return a.fetch_add(inc, std::memory_order_release);
+#elif defined(__cpp_lib_atomic_ref)
   std::atomic_ref<uint32_t> a(*p);
   return a.fetch_add(inc, std::memory_order_release);
 #else
