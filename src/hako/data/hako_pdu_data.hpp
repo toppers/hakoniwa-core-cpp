@@ -105,29 +105,23 @@ namespace hako::data {
         }
         bool is_pdu_dirty(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
-            if (this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] != this->pdu_meta_data_->pdu_write_version[channel_id])
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-            //return this->pdu_meta_data_->is_dirty[channel_id];
+            uint32_t read_ver = hako_atomic_load_u32(&this->pdu_meta_data_->atomic_pdu_read_version[asset_id][channel_id]);
+            uint32_t write_ver = hako_atomic_load_u32(&this->pdu_meta_data_->atomic_pdu_write_version[channel_id]);
+            return read_ver != write_ver;
         }
 
         bool is_pdu_wbusy(HakoPduChannelIdType channel_id)
         {
-            return this->pdu_meta_data_->is_wbusy[channel_id];
+            return hako_atomic_load_bool(&this->pdu_meta_data_->atomic_is_wbusy[channel_id]);
         }
         bool is_pdu_rbusy(HakoPduChannelIdType channel_id)
         {
             bool ret = false;
-            if (this->pdu_meta_data_->is_rbusy_for_external[channel_id]) {
+            if (hako_atomic_load_bool(&this->pdu_meta_data_->atomic_is_rbusy_for_external[channel_id])) {
                 return true;
             }
             for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
-                if (this->pdu_meta_data_->is_rbusy[i][channel_id]) {
+                if (hako_atomic_load_bool(&this->pdu_meta_data_->atomic_is_rbusy[i][channel_id])) {
                     ret = true;
                     break;
                 }
@@ -136,15 +130,15 @@ namespace hako::data {
         }
         void set_pdu_wbusy_status(HakoPduChannelIdType channel_id, bool busy_status)
         {
-            this->pdu_meta_data_->is_wbusy[channel_id] = busy_status;
+            hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_wbusy[channel_id], busy_status);
         }
         void set_pdu_rbusy_status(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id, bool busy_status)
         {
-            this->pdu_meta_data_->is_rbusy[asset_id][channel_id] = busy_status;
+            hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_rbusy[asset_id][channel_id], busy_status);
         }
         void set_pdu_rbusy_status_for_external(HakoPduChannelIdType channel_id, bool busy_status)
         {
-            this->pdu_meta_data_->is_rbusy_for_external[channel_id] = busy_status;
+            hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_rbusy_for_external[channel_id], busy_status);
         }
         /*
          * writers: only one!
@@ -153,8 +147,10 @@ namespace hako::data {
         bool write_pdu_spin_lock(HakoPduChannelIdType channel_id)
         {
             this->set_pdu_wbusy_status(channel_id, true);
+            int spins = 0;
             while (this->is_pdu_rbusy(channel_id)) {
                 //usleep(1000); /* 1msec sleep */
+                hako_cpu_relax_backoff(spins);
             }
             return true;
         }
@@ -184,8 +180,10 @@ namespace hako::data {
 #endif
             }
             this->set_pdu_wbusy_status(channel_id, true);
+            int spins = 0;
             while (this->is_pdu_rbusy(channel_id)) {
                 //usleep(1000); /* 1msec sleep */
+                hako_cpu_relax_backoff(spins);
             }
 #ifdef HAKO_CORE_EXTENSION
             if (this->asset_extension_ != nullptr) {
@@ -197,8 +195,8 @@ namespace hako::data {
 #endif
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(&this->pdu_[off], &pdu_data[0], len);
-            this->pdu_meta_data_->is_dirty[channel_id] = true;
-            this->pdu_meta_data_->pdu_write_version[channel_id]++;
+            hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_dirty[channel_id], true);
+            hako_atomic_fetch_add_u32(&this->pdu_meta_data_->atomic_pdu_write_version[channel_id], 1);
 
 #ifdef HAKO_CORE_EXTENSION
             if (this->asset_extension_ != nullptr) {
@@ -234,11 +232,13 @@ namespace hako::data {
 
         bool read_pdu_for_asset_spin_lock(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
+            int spins = 0;
             while (true) {
                 this->set_pdu_rbusy_status(asset_id, channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
                     this->set_pdu_rbusy_status(asset_id, channel_id, false);
                     //usleep(1000); /* 1msec sleep */
+                    hako_cpu_relax_backoff(spins);
                     continue;
                 }
                 break;
@@ -252,11 +252,13 @@ namespace hako::data {
         }
         bool read_pdu_for_external_spin_lock(HakoPduChannelIdType channel_id)
         {
+            int spins = 0;
             while (true) {
                 this->set_pdu_rbusy_status_for_external(channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
                     this->set_pdu_rbusy_status_for_external(channel_id, false);
                     //usleep(1000); /* 1msec sleep */
+                    hako_cpu_relax_backoff(spins);
                     continue;
                 }
                 break;
@@ -289,18 +291,21 @@ namespace hako::data {
             }
             //READER wait until WRITER has done with rbusy flag=false 
             //in order to avoid deadlock situation for waiting each other...
+            int spins = 0;
             while (true) {
                 this->set_pdu_rbusy_status(asset_id, channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
                     this->set_pdu_rbusy_status(asset_id, channel_id, false);
                     //usleep(1000); /* 1msec sleep */
+                    hako_cpu_relax_backoff(spins);
                     continue;
                 }
                 break;
             }
             int off = this->pdu_meta_data_->channel[channel_id].offset;
             memcpy(pdu_data, &this->pdu_[off], len);
-            this->pdu_meta_data_->pdu_read_version[asset_id][channel_id] = this->pdu_meta_data_->pdu_write_version[channel_id];
+            uint32_t write_ver = hako_atomic_load_u32(&this->pdu_meta_data_->atomic_pdu_write_version[channel_id]);
+            hako_atomic_store_u32(&this->pdu_meta_data_->atomic_pdu_read_version[asset_id][channel_id], write_ver);
             this->set_pdu_rbusy_status(asset_id, channel_id, false);
             return true;
         }
@@ -319,11 +324,13 @@ namespace hako::data {
             }
             //READER wait until WRITER has done with rbusy flag=false 
             //in order to avoid deadlock situation for waiting each other...
+            int spins = 0;
             while (true) {
                 this->set_pdu_rbusy_status_for_external(channel_id, true);
                 if (this->is_pdu_wbusy(channel_id)) {
                     this->set_pdu_rbusy_status_for_external(channel_id, false);
                     //usleep(1000); /* 1msec sleep */
+                    hako_cpu_relax_backoff(spins);
                     continue;
                 }
                 break;
@@ -486,16 +493,17 @@ namespace hako::data {
                 for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
                     this->pdu_meta_data_->asset_pdu_check_status[i] = false;
                     for (int j = 0; j < HAKO_PDU_CHANNEL_MAX; j++) {
-                        this->pdu_meta_data_->is_rbusy[i][j] = false;
-                        this->pdu_meta_data_->pdu_read_version[i][j] = 0;
+                        hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_rbusy[i][j], false);
+                        hako_atomic_store_u32(&this->pdu_meta_data_->atomic_pdu_read_version[i][j], 0);
                     }
                 }
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
                     //this->pdu_meta_data_->channel[i].offset = 0;
                     //this->pdu_meta_data_->channel[i].size = 0;
-                    this->pdu_meta_data_->is_dirty[i] = false;
-                    this->pdu_meta_data_->is_wbusy[i] = false;
-                    this->pdu_meta_data_->pdu_write_version[i] = 0;
+                    hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_rbusy_for_external[i], false);
+                    hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_dirty[i], false);
+                    hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_wbusy[i], false);
+                    hako_atomic_store_u32(&this->pdu_meta_data_->atomic_pdu_write_version[i], 0);
                 }
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);
