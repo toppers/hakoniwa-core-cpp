@@ -16,6 +16,12 @@ bool hako::HakoSimulationEventController::trigger_event(HakoSimulationStateType 
         auto& state = this->master_data_->ref_state_nolock();
         if (state == curr_state) {
             state = next_state;
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                auto* asset_ev = this->master_data_->get_asset_event_nolock(i);
+                if (asset_ev != nullptr) {
+                    asset_ev->event_feedback = false;
+                }
+            }
         }
         else if (next_state == HakoSim_Error) {
             state = next_state;

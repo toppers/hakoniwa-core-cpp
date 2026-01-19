@@ -26,6 +26,9 @@ bool hako::init()
         }
         else {
             master_data_ptr->init(config.param["shm_type"]);
+            if (config.param.contains("asset_timeout_usec") && config.param["asset_timeout_usec"].is_number()) {
+                master_data_ptr->set_asset_timeout_usec(static_cast<HakoTimeType>(config.param["asset_timeout_usec"]));
+            }
         }
     }
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
@@ -103,6 +106,9 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         }
         if (master_data_ptr->load(config.param["shm_type"]) == false) {
             return nullptr;
+        }
+        if (config.param.contains("asset_timeout_usec") && config.param["asset_timeout_usec"].is_number()) {
+            master_data_ptr->set_asset_timeout_usec(static_cast<HakoTimeType>(config.param["asset_timeout_usec"]));
         }
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);

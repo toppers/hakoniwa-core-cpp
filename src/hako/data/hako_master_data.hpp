@@ -149,6 +149,10 @@ namespace hako::data {
             HakoTimeSetType &timeset = this->master_datap_->time_usec;
             return timeset;
         }
+        void set_asset_timeout_usec(HakoTimeType timeout_usec)
+        {
+            this->asset_timeout_usec_ = timeout_usec;
+        }
         void update_asset_time(HakoAssetIdType id)
         {
             if ((id >= 0) && (id < HAKO_DATA_MAX_ASSET_NUM)) {
@@ -292,7 +296,11 @@ namespace hako::data {
         bool is_asset_timeout_nolock(HakoAssetIdType id)
         {
             if ((id >= 0) && (id < HAKO_DATA_MAX_ASSET_NUM)) {
-                return hako_clock_is_timeout(this->master_datap_->assets_ev[id].update_time, HAKO_ASSET_TIMEOUT_USEC);
+                HakoTimeType timeout = this->asset_timeout_usec_;
+                if (timeout <= 0) {
+                    timeout = HAKO_ASSET_TIMEOUT_USEC;
+                }
+                return hako_clock_is_timeout(this->master_datap_->assets_ev[id].update_time, timeout);
             }
             return false;
         }
@@ -450,6 +458,7 @@ namespace hako::data {
         HakoMasterDataType *master_datap_ = nullptr;
         std::shared_ptr<HakoPduData> pdu_datap_ = nullptr;
         std::string shm_type_;
+        HakoTimeType asset_timeout_usec_ = HAKO_ASSET_TIMEOUT_USEC;
         bool is_master_locked = false;
 #ifdef HAKO_CORE_EXTENSION
         std::shared_ptr<extension::IHakoMasterExtension> master_ext_ = nullptr;
