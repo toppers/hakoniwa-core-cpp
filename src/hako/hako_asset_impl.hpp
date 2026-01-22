@@ -25,6 +25,7 @@ namespace hako {
         virtual bool asset_unregister(const std::string & name) override;
         virtual void notify_simtime(const std::string & name, HakoTimeType simtime) override;
         virtual HakoTimeType get_worldtime() override;
+        virtual HakoTimeType get_min_asset_time() override;
 
         /*
          * feedback events

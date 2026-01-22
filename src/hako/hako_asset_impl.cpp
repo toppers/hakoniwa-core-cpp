@@ -1,6 +1,7 @@
 #include "hako_asset_impl.hpp"
 //#include "utils/hako_logger.hpp"
 #include "utils/hako_clock.hpp"
+#include <limits>
 
 bool hako::HakoAssetControllerImpl::asset_register(const std::string & name, AssetCallbackType &callbacks)
 {
@@ -78,6 +79,21 @@ HakoTimeType hako::HakoAssetControllerImpl::get_worldtime()
 {
     hako::data::HakoTimeSetType timeset = this->master_data_->ref_time_nolock();
     return timeset.current;
+}
+HakoTimeType hako::HakoAssetControllerImpl::get_min_asset_time()
+{
+    std::vector<HakoTimeType> asset_times;
+    this->master_data_->get_asset_times(asset_times);
+    if (asset_times.empty()) {
+        return 0;
+    }
+    HakoTimeType min_time = std::numeric_limits<HakoTimeType>::max();
+    for (auto t : asset_times) {
+        if (t < min_time) {
+            min_time = t;
+        }
+    }
+    return min_time;
 }
 
 
