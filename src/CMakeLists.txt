@@ -64,10 +64,6 @@ target_include_directories(
     PRIVATE ${PROJECT_SOURCE_DIR}/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
-if(WIN32)
-    # Avoid Windows min/max macro collisions (e.g., std::numeric_limits::max()).
-    target_compile_definitions(hako PRIVATE NOMINMAX)
-endif()
 if (MSVC)
 elseif(WIN32)
     target_link_libraries(hako stdc++)

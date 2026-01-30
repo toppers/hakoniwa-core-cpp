@@ -87,7 +87,7 @@ HakoTimeType hako::HakoAssetControllerImpl::get_min_asset_time()
     if (asset_times.empty()) {
         return 0;
     }
-    HakoTimeType min_time = std::numeric_limits<HakoTimeType>::max();
+    HakoTimeType min_time = (std::numeric_limits<HakoTimeType>::max)();
     for (auto t : asset_times) {
         if (t < min_time) {
             min_time = t;
