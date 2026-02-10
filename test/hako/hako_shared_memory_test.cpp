@@ -20,6 +20,9 @@ protected:
 
 TEST_F(HakoSharedMemoryTest, HakoSharedMemory_shm01)
 {
+#if defined(__APPLE__) || defined(_WIN32)
+    GTEST_SKIP() << "SysV shm is not supported in this environment.";
+#endif
     std::shared_ptr<hako::utils::HakoSharedMemory> shm = hako::utils::hako_shared_memory_create("shm");
     EXPECT_TRUE(shm.get() != nullptr);
 

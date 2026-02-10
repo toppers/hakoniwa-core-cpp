@@ -6,6 +6,8 @@
 #include <string.h>
 #include <iostream>
 #include "hako_log.hpp"
+#include <shared_mutex>
+#include <unordered_map>
 #ifdef HAKO_CORE_EXTENSION
 #include "hako_extension.hpp"
 #endif
@@ -44,15 +46,7 @@ namespace hako::data {
         }
         bool is_exist_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id)
         {
-            for (int channel = 0; channel < this->pdu_meta_data_->channel_num; channel++) {
-                std::shared_ptr<std::string> name = hako::utils ::hako_fixed2string(this->pdu_meta_data_->channel_map[channel].robo_name);
-                if (robo_name == *name) {
-                    if (this->pdu_meta_data_->channel_map[channel].logical_channel_id == channel_id) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return (this->get_pdu_channel(robo_name, channel_id) >= 0);
         }
         bool create_lchannel(const std::string& robo_name, HakoPduChannelIdType channel_id, size_t size)
         {
@@ -79,6 +73,10 @@ namespace hako::data {
                 this->pdu_meta_data_->channel_map[new_channel_id].logical_channel_id = channel_id;
                 this->pdu_meta_data_->channel[new_channel_id].size = size;
                 std::cout << "INFO: " << robo_name << " create_lchannel: logical_id=" << channel_id << " real_id=" << new_channel_id << " size=" << size << std::endl;
+                {
+                    std::unique_lock<std::shared_mutex> lock(this->pdu_channel_cache_mutex_);
+                    this->pdu_channel_cache_.emplace(PduChannelKey{robo_name, channel_id}, new_channel_id);
+                }
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
@@ -88,6 +86,13 @@ namespace hako::data {
         }
         HakoPduChannelIdType get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)
         {
+            {
+                std::shared_lock<std::shared_mutex> lock(this->pdu_channel_cache_mutex_);
+                auto it = this->pdu_channel_cache_.find(PduChannelKey{robo_name, channel_id});
+                if (it != this->pdu_channel_cache_.end()) {
+                    return it->second;
+                }
+            }
             for (int i = 0; i < this->pdu_meta_data_->channel_num; i++) {
                 HakoPduChannelMapType &entry = this->pdu_meta_data_->channel_map[i];
                 if (entry.logical_channel_id != channel_id) {
@@ -98,6 +103,10 @@ namespace hako::data {
                 }
                 else if (strncmp(entry.robo_name.data, robo_name.c_str(), entry.robo_name.len) != 0) {
                     continue;
+                }
+                {
+                    std::unique_lock<std::shared_mutex> lock(this->pdu_channel_cache_mutex_);
+                    this->pdu_channel_cache_.emplace(PduChannelKey{robo_name, channel_id}, i);
                 }
                 return i;
             }
@@ -581,8 +590,26 @@ namespace hako::data {
         }
 #endif
     private:
+        struct PduChannelKey {
+            std::string robo_name;
+            HakoPduChannelIdType logical_channel_id;
+            bool operator==(const PduChannelKey& other) const
+            {
+                return (this->logical_channel_id == other.logical_channel_id) && (this->robo_name == other.robo_name);
+            }
+        };
+        struct PduChannelKeyHash {
+            std::size_t operator()(const PduChannelKey& key) const
+            {
+                std::size_t h1 = std::hash<std::string>{}(key.robo_name);
+                std::size_t h2 = std::hash<HakoPduChannelIdType>{}(key.logical_channel_id);
+                return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
+            }
+        };
         char*               pdu_;
         HakoPduMetaDataType *pdu_meta_data_ = nullptr;
+        mutable std::shared_mutex pdu_channel_cache_mutex_;
+        std::unordered_map<PduChannelKey, HakoPduChannelIdType, PduChannelKeyHash> pdu_channel_cache_;
 #ifdef HAKO_CORE_EXTENSION
         std::shared_ptr<extension::IHakoAssetExtension> asset_extension_ = nullptr;
         std::shared_ptr<extension::IHakoMasterExtension> master_ext_ = nullptr;

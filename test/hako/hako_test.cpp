@@ -113,3 +113,40 @@ TEST_F(HakoTest, IHakoAssetController_02)
     //done
     hako::destroy();
 }
+
+TEST_F(HakoTest, IHakoAssetController_GetPduChannel_Stable)
+{
+    //prepare
+    hako::init();
+
+    HakoTimeType max_delay_usec = 100000ULL;
+    HakoTimeType delta_usec = 10000ULL;
+    std::shared_ptr<hako::IHakoMasterController> hako_master = hako::create_master();
+    hako_master->set_config_simtime(max_delay_usec, delta_usec);
+
+    hako_asset = hako::create_asset_controller();
+
+    AssetCallbackType callback;
+    callback.reset = nullptr;
+    callback.start = nullptr;
+    callback.stop = nullptr;
+    auto ret = hako_asset->asset_register("TestAsset_01", callback);
+    EXPECT_TRUE(ret);
+
+    ret = hako_asset->create_pdu_lchannel("TestAsset_01", 10, 256);
+    EXPECT_TRUE(ret);
+
+    auto real_cid = hako_asset->get_pdu_channel("TestAsset_01", 10);
+    EXPECT_EQ(real_cid, 0);
+    auto real_cid_again = hako_asset->get_pdu_channel("TestAsset_01", 10);
+    EXPECT_EQ(real_cid_again, real_cid);
+
+    auto missing = hako_asset->get_pdu_channel("TestAsset_01", 99);
+    EXPECT_EQ(missing, -1);
+
+    ret = hako_asset->asset_unregister("TestAsset_01");
+    EXPECT_TRUE(ret);
+
+    //done
+    hako::destroy();
+}
