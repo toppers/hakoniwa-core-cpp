@@ -6,6 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include "hako_log.hpp"
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 #ifdef HAKO_CORE_EXTENSION
