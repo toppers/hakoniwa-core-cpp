@@ -3,7 +3,7 @@
 
 #define HAKO_FIXED_STRLEN_MAX       256
 #ifndef HAKO_DATA_MAX_ASSET_NUM
-#define HAKO_DATA_MAX_ASSET_NUM     4
+#define HAKO_DATA_MAX_ASSET_NUM     16
 #endif /* HAKO_DATA_MAX_ASSET_NUM */
 #define HAKO_ASSET_TIMEOUT_USEC     (30 * 1000 * 1000)
 
@@ -21,7 +21,9 @@
 #define HAKO_LOGGER_LOGNUM      (HAKO_LOGGER_MAXSIZE / HAKO_LOGGER_ENTRYSIZE)
 #define HAKO_LOGGER_ROTNUM      3
 
-#define HAKO_PDU_CHANNEL_MAX        256
+#ifndef HAKO_PDU_CHANNEL_MAX
+#define HAKO_PDU_CHANNEL_MAX        8192
+#endif
 
 #define HAKO_CONFIG_DEFAULT_PATH "/etc/hakoniwa/cpp_core_config.json"
 #define HAKO_CONFIG_MAX_SEM     1024

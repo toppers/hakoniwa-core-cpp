@@ -32,13 +32,21 @@ else
     fi
 fi
 
+DEFAULT_HAKO_PDU_CHANNEL_MAX=8192
+if [ -n "${CHANNEL_MAX:-}" ] && [ "${CHANNEL_MAX}" -gt 0 ]; then
+    :
+else
+    CHANNEL_MAX=${DEFAULT_HAKO_PDU_CHANNEL_MAX}
+fi
+echo "CHANNEL_MAX is ${CHANNEL_MAX}"
+
 mkdir -p cmake-build
 cd cmake-build
 if [ ${OPT} = "test" ]
 then
     if [ ${OS_TYPE} = "posix" ]
     then
-        cmake -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
+        cmake -D test=true -D debug=true -D gcov=true -D HAKO_PDU_CHANNEL_MAX=${CHANNEL_MAX} .. ${OS_OPT}
     else
         cmake -G "Unix Makefiles" -D WIN32=true -D test=true -D debug=true -D gcov=true .. ${OS_OPT}
     fi
@@ -48,10 +56,9 @@ then
 else
     if [ ${OS_TYPE} = "posix" ]
     then
-        cmake -D test=false -D debug=true -D gcov=false ..
+        cmake -D test=false -D debug=true -D gcov=false -D HAKO_PDU_CHANNEL_MAX=${CHANNEL_MAX} ..
     else
         cmake .. -G "Unix Makefiles" -D WIN32=true
     fi
     make
 fi
-

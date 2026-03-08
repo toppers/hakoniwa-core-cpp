@@ -1,5 +1,4 @@
 {
     "shm_type": "mmap",
-    "core_mmap_path": "/var/lib/hakoniwa/mmap",
-    "asset_timeout_usec": 600000000
+    "core_mmap_path": "/var/lib/hakoniwa/mmap"
 }
