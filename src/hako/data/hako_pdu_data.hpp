@@ -22,6 +22,7 @@ namespace hako::data {
             this->pdu_ = nullptr;
             this->master_shmp_ = master_shmp;
             this->asset_shmp_ = hako::utils::hako_shared_memory_create(shm_type);
+            this->rebuild_pdu_channel_index();
         }
         virtual ~HakoPduData()
         {
@@ -34,14 +35,14 @@ namespace hako::data {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return false;
             }
-            this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->lock_channel_table();
             if (this->pdu_meta_data_->channel[channel_id].size == 0) {
                 this->pdu_meta_data_->channel[channel_id].size = size;
                 std::cout << "create_channel: id=" << channel_id << " size=" << size << std::endl;
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
-            this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->unlock_channel_table();
             HAKO_LOG_INFO("channel_id = %d size = %d ret = %d", channel_id, size, ret);
             return ret;
         }
@@ -57,9 +58,9 @@ namespace hako::data {
                 HAKO_LOG_ERROR("ERROR: robo_name length(%ld) is over max(%d)\n", robo_name.length(), HAKO_FIXED_STRLEN_MAX);
                 return false;
             }
-            this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->lock_channel_table();
             if (this->is_exist_lchannel(robo_name, channel_id)) {
-                this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+                this->unlock_channel_table();
                 HAKO_LOG_INFO("INFO: already exist channel: %s %d\n", robo_name.c_str(), channel_id);
                 return true;
             }
@@ -81,9 +82,23 @@ namespace hako::data {
                 this->pdu_meta_data_->channel_num++;
                 ret = true;
             }
-            this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->unlock_channel_table();
             HAKO_LOG_INFO("robo_name = %s channel_id = %d size = %d ret = %d", robo_name.c_str(), channel_id, size, ret);
             return ret;
+        }
+        void lock_channel_table()
+        {
+            if (this->pdu_meta_data_ == nullptr) {
+                return;
+            }
+            hako_spin_lock_bool(&this->pdu_meta_data_->atomic_is_channel_table_busy);
+        }
+        void unlock_channel_table()
+        {
+            if (this->pdu_meta_data_ == nullptr) {
+                return;
+            }
+            hako_spin_unlock_bool(&this->pdu_meta_data_->atomic_is_channel_table_busy);
         }
         HakoPduChannelIdType get_pdu_channel(const std::string& robo_name, HakoPduChannelIdType channel_id)
         {
@@ -112,6 +127,27 @@ namespace hako::data {
                 return i;
             }
             return -1;
+        }
+        void rebuild_pdu_channel_index()
+        {
+            std::unique_lock<std::shared_mutex> lock(this->pdu_channel_cache_mutex_);
+            this->pdu_channel_cache_.clear();
+            if (this->pdu_meta_data_ == nullptr) {
+                return;
+            }
+            for (int i = 0; i < this->pdu_meta_data_->channel_num; i++) {
+                HakoPduChannelMapType& entry = this->pdu_meta_data_->channel_map[i];
+                if (entry.robo_name.len <= 0) {
+                    continue;
+                }
+                this->pdu_channel_cache_.emplace(
+                    PduChannelKey{
+                        std::string(entry.robo_name.data, entry.robo_name.len),
+                        entry.logical_channel_id
+                    },
+                    i
+                );
+            }
         }
         bool is_pdu_dirty(HakoAssetIdType asset_id, HakoPduChannelIdType channel_id)
         {
@@ -483,6 +519,7 @@ namespace hako::data {
             }
 #endif
             this->pdu_ = static_cast<char*>(datap);
+            this->rebuild_pdu_channel_index();
             std::cout << "PDU DATA CREATED" << std::endl;
             printf("CREATED ADDR=%p\n", datap);
             HAKO_LOG_INFO("CREATED ADDR=%p", datap);
@@ -510,6 +547,9 @@ namespace hako::data {
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
                     //this->pdu_meta_data_->channel[i].offset = 0;
                     //this->pdu_meta_data_->channel[i].size = 0;
+                    if (i == 0) {
+                        hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_channel_table_busy, false);
+                    }
                     hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_rbusy_for_external[i], false);
                     hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_dirty[i], false);
                     hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_wbusy[i], false);
@@ -519,6 +559,7 @@ namespace hako::data {
                 memset(this->pdu_, 0, total_size);
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
+            this->rebuild_pdu_channel_index();
         }
         bool is_pdu_created()
         {
@@ -553,6 +594,7 @@ namespace hako::data {
             }
             HAKO_LOG_INFO("LOADED PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
+            this->rebuild_pdu_channel_index();
             return true;
         }
         ssize_t pdu_total_size()

@@ -46,6 +46,18 @@ static inline void hako_atomic_store_bool(bool* p, bool v) {
 #endif
 }
 
+static inline bool hako_atomic_exchange_bool(bool* p, bool v) {
+#if defined(_MSC_VER)
+  std::atomic_ref<bool> a(*p);
+  return a.exchange(v, std::memory_order_acq_rel);
+#elif defined(__cpp_lib_atomic_ref)
+  std::atomic_ref<bool> a(*p);
+  return a.exchange(v, std::memory_order_acq_rel);
+#else
+  return __atomic_exchange_n(p, v, __ATOMIC_ACQ_REL);
+#endif
+}
+
 static inline uint32_t hako_atomic_load_u32(const uint32_t* p) {
 #if defined(_MSC_VER)
   std::atomic_ref<const uint32_t> a(*p);
@@ -80,6 +92,18 @@ static inline uint32_t hako_atomic_fetch_add_u32(uint32_t* p, uint32_t inc = 1) 
 #else
   return __atomic_fetch_add(p, inc, __ATOMIC_RELEASE);
 #endif
+}
+
+static inline bool hako_spin_lock_bool(bool* p) {
+  int spins = 0;
+  while (hako_atomic_exchange_bool(p, true)) {
+    hako_cpu_relax_backoff(spins);
+  }
+  return true;
+}
+
+static inline void hako_spin_unlock_bool(bool* p) {
+  hako_atomic_store_bool(p, false);
 }
 namespace hako::data {
 
@@ -151,6 +175,7 @@ namespace hako::data {
         bool                atomic_is_rbusy[HAKO_DATA_MAX_ASSET_NUM][HAKO_PDU_CHANNEL_MAX];
         bool                atomic_is_rbusy_for_external[HAKO_PDU_CHANNEL_MAX];
         bool                atomic_is_wbusy[HAKO_PDU_CHANNEL_MAX];
+        bool                atomic_is_channel_table_busy;
         HakoPduChannelType  channel[HAKO_PDU_CHANNEL_MAX];
 
         /*
