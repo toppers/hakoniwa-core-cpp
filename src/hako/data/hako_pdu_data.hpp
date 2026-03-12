@@ -3,6 +3,8 @@
 
 #include "data/hako_base_data.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
+#include "utils/hako_config_loader.hpp"
+#include "utils/hako_share/impl/hako_flock.hpp"
 #include <string.h>
 #include <iostream>
 #include "hako_log.hpp"
@@ -14,6 +16,42 @@
 #endif
 
 namespace hako::data {
+    namespace {
+        static inline std::string get_pdu_init_lock_filepath()
+        {
+            char buf[4096];
+            HakoConfigType config;
+            hako_config_load(config);
+
+            if (config.param == nullptr) {
+                snprintf(buf, sizeof(buf), "./pdu_init.lock");
+            }
+            else {
+                std::string core_mmap_path = config.param["core_mmap_path"];
+                snprintf(buf, sizeof(buf), "%s/pdu_init.lock", core_mmap_path.c_str());
+            }
+            return std::string(buf);
+        }
+        static inline HakoFlockObjectType* acquire_pdu_init_lock()
+        {
+            std::string filepath = get_pdu_init_lock_filepath();
+            HakoFlockObjectType* lock = hako_flock_create(filepath);
+            if (lock == nullptr) {
+                std::cout << "ERROR: failed to create pdu init lock file: " << filepath << std::endl;
+                return nullptr;
+            }
+            hako_flock_acquire(lock);
+            return lock;
+        }
+        static inline void release_pdu_init_lock(HakoFlockObjectType* lock)
+        {
+            if (lock == nullptr) {
+                return;
+            }
+            hako_flock_release(lock);
+            hako_flock_destroy(lock);
+        }
+    }
     class HakoPduData {
     public:
         HakoPduData(HakoPduMetaDataType *pdu_meta_data, std::shared_ptr<hako::utils::HakoSharedMemory> master_shmp, const std::string& shm_type)
@@ -482,6 +520,10 @@ namespace hako::data {
          */
         void create(uint32_t asset_num)
         {
+            HakoFlockObjectType* init_lock = acquire_pdu_init_lock();
+            if (init_lock == nullptr) {
+                return;
+            }
 #ifdef FIX_PDU_CREATE_TIMING
             HAKO_LOG_INFO("PDU CREATE: asset_num = %d %p", asset_num, this->pdu_);
 #else
@@ -491,6 +533,7 @@ namespace hako::data {
                 this->pdu_meta_data_->mode = HakoTimeMode_Asset;
                 std::cout << "ALREADY CREATED PDU DATA" << std::endl;
                 HAKO_LOG_INFO("ALREADY CREATED PDU DATA");
+                release_pdu_init_lock(init_lock);
                 return;
             }
 #endif
@@ -523,12 +566,17 @@ namespace hako::data {
             std::cout << "PDU DATA CREATED" << std::endl;
             printf("CREATED ADDR=%p\n", datap);
             HAKO_LOG_INFO("CREATED ADDR=%p", datap);
+            release_pdu_init_lock(init_lock);
         }
         /*
          * for master api
          */
         void reset()
         {
+            HakoFlockObjectType* init_lock = acquire_pdu_init_lock();
+            if (init_lock == nullptr) {
+                return;
+            }
             HAKO_LOG_INFO("RESET EVENT OCCURED");
             std::cout << "EVENT: reset" << std::endl;
             (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
@@ -560,6 +608,7 @@ namespace hako::data {
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             this->rebuild_pdu_channel_index();
+            release_pdu_init_lock(init_lock);
         }
         bool is_pdu_created()
         {
@@ -575,12 +624,18 @@ namespace hako::data {
         }
         bool load(bool is_debug = true)
         {
+            HakoFlockObjectType* init_lock = acquire_pdu_init_lock();
+            if (init_lock == nullptr) {
+                return false;
+            }
             if (this->pdu_ != nullptr) {
+                release_pdu_init_lock(init_lock);
                 return true;
             }
             ssize_t total_size = this->pdu_total_size();
             void *datap = this->asset_shmp_->load_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
             if (datap == nullptr) {
+                release_pdu_init_lock(init_lock);
                 return false;
             }
 #ifdef HAKO_CORE_EXTENSION
@@ -595,6 +650,7 @@ namespace hako::data {
             HAKO_LOG_INFO("LOADED PDU DATA");
             this->pdu_ = static_cast<char*>(datap);
             this->rebuild_pdu_channel_index();
+            release_pdu_init_lock(init_lock);
             return true;
         }
         ssize_t pdu_total_size()

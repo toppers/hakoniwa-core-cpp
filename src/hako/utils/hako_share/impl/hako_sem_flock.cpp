@@ -14,7 +14,7 @@ static std::mutex mtx;
 #define HAKO_SEM_INX_MASTER   0
 #define HAKO_SEM_INX_ASSETS  1
 
-thread_local static HakoFlockObjectType *flock_handle;
+thread_local static HakoFlockObjectType *flock_handle = nullptr;
 static void hako_sem_load(void)
 {
     if (flock_handle != nullptr) {
@@ -109,6 +109,10 @@ int32_t hako::utils::sem::flock::create(int32_t key)
     }
     //printf("INFO: flock path=%s\n", buf);
     std::string filepath(buf);
+    if (flock_handle != nullptr) {
+        hako_flock_destroy(flock_handle);
+        flock_handle = nullptr;
+    }
     flock_handle = hako_flock_create(filepath);
     if (flock_handle == nullptr) {
         //hako::utils::logger::get("core")->error("hako_flock_create() key={0} error={1}", key, errno);
@@ -126,7 +130,11 @@ void hako::utils::sem::flock::destroy(int32_t sem_id)
 {
     HAKO_ASSERT(sem_id >= 0);
     (void)sem_id;
+    if (flock_handle == nullptr) {
+        return;
+    }
     hako_flock_destroy(flock_handle);
+    flock_handle = nullptr;
     return;
 }
 
