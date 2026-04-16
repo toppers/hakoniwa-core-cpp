@@ -357,6 +357,9 @@ namespace hako::data {
                 this->master_ext_->on_pdu_data_reset();
             }
 #endif
+            if (this->pdu_datap_ == nullptr) {
+                return;
+            }
             this->pdu_datap_->reset();
             //this->pdu_datap_->destroy();
         }

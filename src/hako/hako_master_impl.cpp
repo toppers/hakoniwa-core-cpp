@@ -13,7 +13,7 @@ bool hako::HakoMasterControllerImpl::execute()
     if (is_changed) {
         if ((prev == HakoSim_Runnable) && (next == HakoSim_Running)) {
 #ifdef FIX_PDU_CREATE_TIMING
-            // nothing to do
+            this->master_data_->get_pdu_data()->load(false);
 #else
             this->master_data_->create_pdu_data();
 #endif

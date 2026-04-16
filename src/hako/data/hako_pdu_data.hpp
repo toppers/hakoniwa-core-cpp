@@ -577,8 +577,13 @@ namespace hako::data {
             if (init_lock == nullptr) {
                 return;
             }
+            if (this->pdu_ == nullptr) {
+                std::cout << "PDU is not created yet" << std::endl;
+                release_pdu_init_lock(init_lock);
+                return;
+            }
             HAKO_LOG_INFO("RESET EVENT OCCURED");
-            std::cout << "EVENT: reset" << std::endl;
+            std::cout << "EVENT: reset, so start clearing pdu data" << std::endl;
             (void)this->master_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_0);
             {
                 //this->pdu_meta_data_->asset_num = 0;
@@ -605,6 +610,7 @@ namespace hako::data {
                 }
                 ssize_t total_size = this->pdu_total_size();
                 memset(this->pdu_, 0, total_size);
+                std::cout << "INFO: pdu reset cleared buffer size=" << total_size << std::endl;
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
             this->rebuild_pdu_channel_index();
