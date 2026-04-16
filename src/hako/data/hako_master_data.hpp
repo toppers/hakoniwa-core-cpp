@@ -346,6 +346,17 @@ namespace hako::data {
             }
             this->unlock();
         }
+        void reset_asset_ctime_nolock()
+        {
+            for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+                auto* asset = this->get_asset(i);
+                auto* asset_ev = this->get_asset_event_nolock(i);
+                if ((asset == nullptr) || (asset_ev == nullptr)) {
+                    continue;
+                }
+                asset_ev->ctime = 0;
+            }
+        }
         std::shared_ptr<HakoPduData> get_pdu_data()
         {
             return this->pdu_datap_;

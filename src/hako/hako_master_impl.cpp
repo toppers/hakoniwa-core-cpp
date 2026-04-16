@@ -22,6 +22,7 @@ bool hako::HakoMasterControllerImpl::execute()
             this->master_data_->lock();
             auto& timeset = this->master_data_->ref_time_nolock();
             timeset.current = 0;
+            this->master_data_->reset_asset_ctime_nolock();
             this->theWorld_->reset_world_time();
             this->master_data_->unlock();
             this->master_data_->destroy_pdu_data();
