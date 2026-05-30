@@ -12,6 +12,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 #include <algorithm>
+#include <limits>
 #ifdef HAKO_CORE_EXTENSION
 #include "hako_extension.hpp"
 #endif

@@ -1,4 +1,5 @@
 #include "utils/hako_share/impl/hako_mmap.hpp"
+#include <limits>
 
 typedef struct {
     int fd;

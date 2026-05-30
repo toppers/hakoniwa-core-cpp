@@ -6,8 +6,11 @@
 #include <cstdint>
 #include <thread>
 #if defined(_WIN32)
-  #include <windows.h>
-  #include <immintrin.h>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <immintrin.h>
 #endif
 
 static inline void hako_cpu_relax_backoff(int& spins) {

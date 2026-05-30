@@ -20,7 +20,10 @@
 typedef pid_t pid_type;
 #else
 
-#include "windows.h"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 typedef DWORD pid_type;

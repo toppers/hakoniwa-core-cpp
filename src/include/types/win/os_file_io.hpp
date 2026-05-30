@@ -1,6 +1,9 @@
 #ifndef _WINDOWS_FILE_IO_HPP_
 #define _WINDOWS_FILE_IO_HPP_
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 
 typedef struct {
