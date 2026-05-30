@@ -94,45 +94,10 @@ void* hako::utils::HakoSharedMemoryMmap::load_memory(int32_t key, size_t size)
     if (size == 0) {
         return nullptr;
     }
-    SharedMemoryMetaDataType *metap =
-        static_cast<SharedMemoryMetaDataType*>(this->load_memory_shmid(key, -1));
-
-    if (metap == nullptr) {
-        std::cout << "ERROR: load_memory() load_memory_shmid() return nullptr key=" << key << " size=" << size << std::endl;
-        return nullptr;
-    }
-
-    if (metap->magic != HAKO_SHM_MAGIC) {
-        std::cout << "ERROR: shared memory magic mismatch key=" << key << " magic=" << metap->magic << " expected=" << HAKO_SHM_MAGIC << std::endl;
-        return nullptr;
-    }
-
-    if (metap->version != HAKO_SHM_LAYOUT_VERSION) {
-        std::cout << "ERROR: shared memory layout version mismatch key=" << key << " version=" << metap->version << " expected=" << HAKO_SHM_LAYOUT_VERSION << std::endl;
-        return nullptr;
-    }
-    if (metap->data_size != static_cast<uint64_t>(size)) {
-        std::cout
-            << "ERROR: shared memory data_size mismatch"
-            << " key=" << key
-            << " data_size=" << metap->data_size
-            << " requested_size=" << size
-            << std::endl;
-        return nullptr;
-    }    
-    std::cout
-        << "INFO: HakoSharedMemoryMmap::load_memory()"
-        << " key=" << key
-        << " magic=0x" << std::hex << metap->magic << std::dec
-        << " version=" << metap->version
-        << " data_size=" << metap->data_size
-        << " requested_size=" << size
-        << std::endl;
-
-    return static_cast<void*>(metap);
+    return this->load_memory_shmid(key, -1, size);
 }
 
-void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t shmid)
+void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t shmid, size_t size)
 {
     if (shmid >= 0) {
         return nullptr;
@@ -158,11 +123,46 @@ void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t 
         }
         void *shared_memory = mmap_obj->mmap_addr;
         SharedMemoryMetaDataType *metap = static_cast<SharedMemoryMetaDataType*>(shared_memory);
+        if (metap == nullptr) {
+            std::cout << "ERROR: load_memory() load_memory_shmid() return nullptr key=" << key << " size=" << size << std::endl;
+            hako_mmap_close(mmap_obj);
+            return nullptr;
+        }
+
+        if (metap->magic != HAKO_SHM_MAGIC) {
+            std::cout << "ERROR: shared memory magic mismatch key=" << key << " magic=" << metap->magic << " expected=" << HAKO_SHM_MAGIC << std::endl;
+            hako_mmap_close(mmap_obj);
+            return nullptr;
+        }
+
+        if (metap->version != HAKO_SHM_LAYOUT_VERSION) {
+            std::cout << "ERROR: shared memory layout version mismatch key=" << key << " version=" << metap->version << " expected=" << HAKO_SHM_LAYOUT_VERSION << std::endl;
+            hako_mmap_close(mmap_obj);
+            return nullptr;
+        }
+        if (metap->data_size != static_cast<uint64_t>(size)) {
+            std::cout
+                << "ERROR: shared memory data_size mismatch"
+                << " key=" << key
+                << " data_size=" << metap->data_size
+                << " requested_size=" << size
+                << std::endl;
+            hako_mmap_close(mmap_obj);
+            return nullptr;
+        }    
+        std::cout
+            << "INFO: HakoSharedMemoryMmap::load_memory()"
+            << " key=" << key
+            << " magic=0x" << std::hex << metap->magic << std::dec
+            << " version=" << metap->version
+            << " data_size=" << metap->data_size
+            << " requested_size=" << size
+            << std::endl;
         SharedMemoryInfoType info;
         info.addr = metap;
         info.shm_id = metap->shm_id;
         info.mmap_obj = mmap_obj;
-        info.sem_id = metap->sem_id;
+        info.sem_id = metap->sem_id;        
         this->shared_memory_map_.insert(std::make_pair(key, info));
     }
     SharedMemoryInfoType *info = find_memory_info(this->shared_memory_map_, key);

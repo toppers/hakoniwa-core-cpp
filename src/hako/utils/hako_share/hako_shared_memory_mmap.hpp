@@ -22,7 +22,7 @@ namespace hako::utils {
         virtual int32_t get_semid(int32_t key) override;
 
     private:
-        void* load_memory_shmid(int32_t key, int32_t shmid);
+        void* load_memory_shmid(int32_t key, int32_t shmid, size_t size);
         std::map<int32_t, SharedMemoryInfoType> shared_memory_map_;
     };
 }
