@@ -2,6 +2,17 @@
 #include "types/win/os_file_io.hpp"
 #include "utils/hako_assert.hpp"
 #include <stdio.h>
+#include <limits>
+
+static inline DWORD hako_win_low32(size_t value)
+{
+    return static_cast<DWORD>(static_cast<uint64_t>(value) & 0xFFFFFFFFULL);
+}
+
+static inline DWORD hako_win_high32(size_t value)
+{
+    return static_cast<DWORD>((static_cast<uint64_t>(value) >> 32) & 0xFFFFFFFFULL);
+}
 
 int  win_open_rw(const char* filepath, WinHandleType *whp)
 {
@@ -20,8 +31,19 @@ int  win_open_rw(const char* filepath, WinHandleType *whp)
         //printf("ERROR: win_open_rw(): CreateFileW() error\n");
         return -1;
     }
-    whp->size = GetFileSize(whp->handle, 0);
-    //printf("INFO: win_open_rw() size=%d\n", whp->size);
+    LARGE_INTEGER file_size;
+    if (GetFileSizeEx(whp->handle, &file_size) == FALSE) {
+        return -1;
+    }
+    if (file_size.QuadPart < 0) {
+        return -1;
+    }
+    if (static_cast<unsigned long long>(file_size.QuadPart) >
+        static_cast<unsigned long long>(std::numeric_limits<size_t>::max())) {
+        return -1;
+    }
+    whp->size = static_cast<size_t>(file_size.QuadPart);
+    //printf("INFO: win_open_rw() size=%zu\n", whp->size);
     return 0;
 }
 
@@ -42,15 +64,29 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
         printf("ERROR: win_create_rw(): CreateFileW() error\n");
         return -1;
     }
-    printf("INFO: win_create_rw() want size=%d\n", whp->size);
-    (void)SetFileValidData(whp->handle, whp->size);
-    void *bufp = malloc(whp->size);
-    HAKO_ASSERT(bufp != NULL);
-    memset(bufp, 0, whp->size);
-    win_pwrite(whp, bufp, whp->size, 0);
-    free(bufp);
-    whp->size = GetFileSize(whp->handle, 0);
-    //printf("INFO: win_create_rw() size=%d\n", whp->size);
+    printf("INFO: win_create_rw() want size=%zu\n", whp->size);
+
+    if (whp->size > static_cast<size_t>(std::numeric_limits<LONGLONG>::max())) {
+        return -1;
+    }
+
+    LARGE_INTEGER li;
+    li.QuadPart = static_cast<LONGLONG>(whp->size);    
+    if (SetFilePointerEx(whp->handle, li, nullptr, FILE_BEGIN) == FALSE) {
+        return -1;
+    }
+    if (SetEndOfFile(whp->handle) == FALSE) {
+        return -1;
+    }
+    LARGE_INTEGER file_size;
+    if (GetFileSizeEx(whp->handle, &file_size) == FALSE) {
+        return -1;
+    }
+    if (file_size.QuadPart < 0) {
+        return -1;
+    }
+    whp->size = static_cast<size_t>(file_size.QuadPart);
+    //printf("INFO: win_create_rw() size=%zu\n", whp->size);
     return 0;
 }
 
@@ -59,7 +95,17 @@ void* win_mmap(WinHandleType *whp)
     if (whp == NULL) {
         return NULL;
     }
-    whp->map_handle = CreateFileMapping(whp->handle, 0, PAGE_READWRITE, 0, 0, 0);
+    DWORD size_low = hako_win_low32(whp->size);
+    DWORD size_high = hako_win_high32(whp->size);
+
+    whp->map_handle = CreateFileMapping(
+        whp->handle,
+        0,
+        PAGE_READWRITE,
+        size_high,
+        size_low,
+        0
+    );
     if (whp->map_handle == NULL) {
         return NULL;
     }
@@ -87,54 +133,112 @@ void win_close(WinHandleType *whp)
 
 void win_flock_acquire(WinHandleType *whp)
 {
-    //BOOL ret = LockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
     OVERLAPPED overlap;
-    memset((void*)&overlap, 0, sizeof(LPOVERLAPPED));
+    memset((void*)&overlap, 0, sizeof(OVERLAPPED));
     overlap.Offset = 0;
     overlap.OffsetHigh = 0;
-    BOOL ret = LockFileEx(whp->handle, LOCKFILE_EXCLUSIVE_LOCK, 0, whp->size, 0, &overlap);
+
+    DWORD len_low = hako_win_low32(whp->size);
+    DWORD len_high = hako_win_high32(whp->size);
+
+    BOOL ret = LockFileEx(
+        whp->handle,
+        LOCKFILE_EXCLUSIVE_LOCK,
+        0,
+        len_low,
+        len_high,
+        &overlap
+    );
+
     if (ret == FALSE) {
         DWORD err = GetLastError();
-        printf("win_flock_acquire() error:%ld\n", err);
+        printf("win_flock_acquire() error:%lu\n", err);
     }
-    return;
 }
-
 void win_flock_release(WinHandleType *whp)
 {
     OVERLAPPED overlap;
-    memset((void*)&overlap, 0, sizeof(LPOVERLAPPED));
+    memset((void*)&overlap, 0, sizeof(OVERLAPPED));
     overlap.Offset = 0;
     overlap.OffsetHigh = 0;
-    //BOOL ret = UnlockFile(whp->handle, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF);
-    BOOL ret = UnlockFileEx(whp->handle, 0, whp->size, 0, &overlap);
+
+    DWORD len_low = hako_win_low32(whp->size);
+    DWORD len_high = hako_win_high32(whp->size);
+
+    BOOL ret = UnlockFileEx(
+        whp->handle,
+        0,
+        len_low,
+        len_high,
+        &overlap
+    );
+
     if (ret == FALSE) {
         DWORD err = GetLastError();
-        printf("win_flock_release() error:%ld\n", err);
+        printf("win_flock_release() error:%lu\n", err);
     }
-    return;
 }
 int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
 {
-    DWORD rsize = 0;
-    (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
-    BOOL ret = WriteFile(whp->handle, buf, count, &rsize, 0);
+    if (count > static_cast<size_t>(std::numeric_limits<DWORD>::max())) {
+        return -1;
+    }
+
+    LARGE_INTEGER li;
+    li.QuadPart = static_cast<LONGLONG>(offset);
+
+    if (SetFilePointerEx(whp->handle, li, nullptr, FILE_BEGIN) == FALSE) {
+        DWORD err = GetLastError();
+        printf("win_pwrite SetFilePointerEx error:%lu\n", err);
+        return -(int)err;
+    }
+
+    DWORD written = 0;
+    BOOL ret = WriteFile(
+        whp->handle,
+        buf,
+        static_cast<DWORD>(count),
+        &written,
+        0
+    );
+
     if (ret == FALSE) {
         DWORD err = GetLastError();
-        printf("win_pwrite error:%ld\n", err);
-        return - (int)err;
+        printf("win_pwrite error:%lu\n", err);
+        return -(int)err;
     }
+
     return 0;
 }
 int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset)
 {
-    DWORD rsize = 0;
-    (void)SetFilePointer(whp->handle, offset, 0, FILE_BEGIN);
-    BOOL ret = ReadFile(whp->handle, buf, count, &rsize, 0);
-    if (ret == FALSE) {
+    if (count > static_cast<size_t>(std::numeric_limits<DWORD>::max())) {
+        return -1;
+    }
+
+    LARGE_INTEGER li;
+    li.QuadPart = static_cast<LONGLONG>(offset);
+
+    if (SetFilePointerEx(whp->handle, li, nullptr, FILE_BEGIN) == FALSE) {
         DWORD err = GetLastError();
-        printf("win_pwrite error:%ld\n", err);
+        printf("win_pread SetFilePointerEx error:%lu\n", err);
         return -(int)err;
     }
+
+    DWORD read_size = 0;
+    BOOL ret = ReadFile(
+        whp->handle,
+        buf,
+        static_cast<DWORD>(count),
+        &read_size,
+        0
+    );
+
+    if (ret == FALSE) {
+        DWORD err = GetLastError();
+        printf("win_pread error:%lu\n", err);
+        return -(int)err;
+    }
+
     return 0;
 }

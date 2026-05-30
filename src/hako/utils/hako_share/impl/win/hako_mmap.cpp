@@ -3,11 +3,11 @@
 
 typedef struct {
     WinHandleType fd;
-    int size;
+    size_t size;
     HakoMmapObjectType mmap_obj;
 } HakoMmapFileHandleObjectType;
 
-HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
+HakoMmapObjectType* hako_mmap_create(std::string &filepath, size_t size)
 {
     HakoMmapFileHandleObjectType *handle = (HakoMmapFileHandleObjectType *)malloc(sizeof(HakoMmapFileHandleObjectType));
     if (handle == nullptr) {

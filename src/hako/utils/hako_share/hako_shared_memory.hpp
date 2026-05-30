@@ -5,12 +5,17 @@
 #include "utils/hako_share/impl/hako_mmap.hpp"
 #include <map>
 
+#define HAKO_SHM_MAGIC 0x48414B4FU
+#define HAKO_SHM_LAYOUT_VERSION 2
+
 namespace hako::utils {
 
     typedef struct {
+        uint32_t    magic;
+        uint32_t    version;        
         int32_t     shm_id;
         int32_t     sem_id;
-        uint32_t    data_size;
+        uint64_t    data_size;
         char        data[4];
     } SharedMemoryMetaDataType;
     
@@ -25,8 +30,8 @@ namespace hako::utils {
     public:
         virtual ~HakoSharedMemory() {}
 
-        virtual int32_t create_memory(int32_t key, int32_t size) = 0;
-        virtual void* load_memory(int32_t key, int32_t size) = 0;
+        virtual int32_t create_memory(int32_t key, size_t size) = 0;
+        virtual void* load_memory(int32_t key, size_t size) = 0;
 
         virtual void* lock_memory(int32_t key) = 0;
         virtual void unlock_memory(int32_t key) = 0;

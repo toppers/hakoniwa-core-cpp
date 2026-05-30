@@ -11,6 +11,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
+#include <algorithm>
 #ifdef HAKO_CORE_EXTENSION
 #include "hako_extension.hpp"
 #endif
@@ -277,7 +278,11 @@ namespace hako::data {
                 }
             }
 #endif
-            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            uint64_t off64 = this->pdu_meta_data_->channel[channel_id].offset;
+            if (off64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
+            }
+            size_t off = static_cast<size_t>(off64);
             memcpy(&this->pdu_[off], &pdu_data[0], len);
             hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_dirty[channel_id], true);
             hako_atomic_fetch_add_u32(&this->pdu_meta_data_->atomic_pdu_write_version[channel_id], 1);
@@ -386,7 +391,11 @@ namespace hako::data {
                 }
                 break;
             }
-            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            uint64_t off64 = this->pdu_meta_data_->channel[channel_id].offset;
+            if (off64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
+            }
+            size_t off = static_cast<size_t>(off64);
             memcpy(pdu_data, &this->pdu_[off], len);
             uint32_t write_ver = hako_atomic_load_u32(&this->pdu_meta_data_->atomic_pdu_write_version[channel_id]);
             hako_atomic_store_u32(&this->pdu_meta_data_->atomic_pdu_read_version[asset_id][channel_id], write_ver);
@@ -419,7 +428,11 @@ namespace hako::data {
                 }
                 break;
             }
-            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            uint64_t off64 = this->pdu_meta_data_->channel[channel_id].offset;
+            if (off64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
+            }
+            size_t off = static_cast<size_t>(off64);
             memcpy(pdu_data, &this->pdu_[off], len);
             this->set_pdu_rbusy_status_for_external(channel_id, false);
             return true;
@@ -435,11 +448,17 @@ namespace hako::data {
             else if (this->pdu_ == nullptr) {
                 this->load(false);
             }
-            size_t copy_len = len;
-            if (len > this->pdu_meta_data_->channel[channel_id].size) {
-                copy_len = this->pdu_meta_data_->channel[channel_id].size;
+            uint64_t ch_size64 = this->pdu_meta_data_->channel[channel_id].size;
+            if (ch_size64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
             }
-            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            size_t ch_size = static_cast<size_t>(ch_size64);
+            size_t copy_len = std::min(len, ch_size);
+            uint64_t off64 = this->pdu_meta_data_->channel[channel_id].offset;
+            if (off64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
+            }
+            size_t off = static_cast<size_t>(off64);
             memcpy(pdu_data, &this->pdu_[off], copy_len);
             return true;
         }
@@ -454,11 +473,17 @@ namespace hako::data {
             else if (this->pdu_ == nullptr) {
                 this->load(false);
             }
-            size_t copy_len = len;
-            if (len < this->pdu_meta_data_->channel[channel_id].size) {
-                copy_len = this->pdu_meta_data_->channel[channel_id].size;
+            uint64_t ch_size64 = this->pdu_meta_data_->channel[channel_id].size;
+            if (ch_size64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
             }
-            int off = this->pdu_meta_data_->channel[channel_id].offset;
+            size_t ch_size = static_cast<size_t>(ch_size64);
+            size_t copy_len = std::min(len, ch_size);
+            uint64_t off64 = this->pdu_meta_data_->channel[channel_id].offset;
+            if (off64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return false;
+            }
+            size_t off = static_cast<size_t>(off64);
             memcpy(&this->pdu_[off], pdu_data, copy_len);
             return true;
         }
@@ -467,7 +492,11 @@ namespace hako::data {
             if (channel_id >= HAKO_PDU_CHANNEL_MAX) {
                 return -1;
             }
-            return this->pdu_meta_data_->channel[channel_id].size;
+            uint64_t ch_size64 = this->pdu_meta_data_->channel[channel_id].size;
+            if (ch_size64 > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                return -1;
+            }
+            return static_cast<size_t>(ch_size64);
         }
 
         void notify_read_pdu_done(HakoAssetIdType asset_id)
@@ -539,21 +568,26 @@ namespace hako::data {
 #endif
             this->pdu_meta_data_->mode = HakoTimeMode_Asset;
 
-            ssize_t total_size = this->pdu_total_size();
-            HAKO_LOG_INFO("START CREATE PDU DATA: total_size= = %d", total_size);
+            uint64_t total_size = this->pdu_total_size();
+            if (total_size > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                release_pdu_init_lock(init_lock);
+                return;
+            }
+            size_t total_size_size_t = static_cast<size_t>(total_size);
+            HAKO_LOG_INFO("START CREATE PDU DATA: total_size=%zu", total_size_size_t);
             std::cout << "START CREATE PDU DATA: total_size= " << total_size << std::endl;
-            auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
+            auto shmid = this->asset_shmp_->create_memory(HAKO_SHARED_MEMORY_ID_1, total_size_size_t);
             HAKO_ASSERT(shmid >= 0);
             (void)shmid;
             void *datap = this->asset_shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_1);
             {
-                int off = 0;
+                uint64_t off = 0;
                 this->pdu_meta_data_->asset_num = asset_num;
                 for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
                     this->pdu_meta_data_->channel[i].offset = off;
                     off += this->pdu_meta_data_->channel[i].size;
                 }
-                memset(datap, 0, total_size);
+                memset(datap, 0, total_size_size_t);
             }
             this->asset_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_1);
 #ifdef HAKO_CORE_EXTENSION
@@ -608,8 +642,13 @@ namespace hako::data {
                     hako_atomic_store_bool(&this->pdu_meta_data_->atomic_is_wbusy[i], false);
                     hako_atomic_store_u32(&this->pdu_meta_data_->atomic_pdu_write_version[i], 0);
                 }
-                ssize_t total_size = this->pdu_total_size();
-                memset(this->pdu_, 0, total_size);
+                uint64_t total_size = this->pdu_total_size();
+                if (total_size > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                    release_pdu_init_lock(init_lock);
+                    return;
+                }
+                size_t total_size_size_t = static_cast<size_t>(total_size);
+                memset(this->pdu_, 0, total_size_size_t);
                 std::cout << "INFO: pdu reset cleared buffer size=" << total_size << std::endl;
             }
             this->master_shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_0);
@@ -638,8 +677,13 @@ namespace hako::data {
                 release_pdu_init_lock(init_lock);
                 return true;
             }
-            ssize_t total_size = this->pdu_total_size();
-            void *datap = this->asset_shmp_->load_memory(HAKO_SHARED_MEMORY_ID_1, total_size);
+            uint64_t total_size = this->pdu_total_size();
+            if (total_size > static_cast<uint64_t>(std::numeric_limits<size_t>::max())) {
+                release_pdu_init_lock(init_lock);
+                return false;
+            }
+            size_t total_size_size_t = static_cast<size_t>(total_size);
+            void *datap = this->asset_shmp_->load_memory(HAKO_SHARED_MEMORY_ID_1, total_size_size_t);
             if (datap == nullptr) {
                 release_pdu_init_lock(init_lock);
                 return false;
@@ -659,12 +703,15 @@ namespace hako::data {
             release_pdu_init_lock(init_lock);
             return true;
         }
-        ssize_t pdu_total_size()
+        uint64_t pdu_total_size()
         {
-            ssize_t total_size = 0;
-            for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++)
-            {
-                total_size += this->pdu_meta_data_->channel[i].size;
+            uint64_t total_size = 0;
+            for (int i = 0; i < HAKO_PDU_CHANNEL_MAX; i++) {
+                uint64_t ch_size = this->pdu_meta_data_->channel[i].size;
+                if (ch_size > std::numeric_limits<uint64_t>::max() - total_size) {
+                    return UINT64_MAX;
+                }
+                total_size += ch_size;
             }
             return total_size;
         }

@@ -12,8 +12,8 @@ namespace hako::utils {
         HakoSharedMemoryShm() {}
         virtual ~HakoSharedMemoryShm() {}
 
-        virtual int32_t create_memory(int32_t key, int32_t size) override;
-        virtual void* load_memory(int32_t key, int32_t size) override;
+        virtual int32_t create_memory(int32_t key, size_t size) override;
+        virtual void* load_memory(int32_t key, size_t size) override;
 
         virtual void* lock_memory(int32_t key) override;
         virtual void unlock_memory(int32_t key) override;

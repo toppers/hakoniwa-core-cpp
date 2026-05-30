@@ -2,11 +2,11 @@
 
 typedef struct {
     int fd;
-    int size;
+    size_t size;
     HakoMmapObjectType mmap_obj;
 } HakoMmapFileHandleObjectType;
 
-HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
+HakoMmapObjectType* hako_mmap_create(std::string &filepath, size_t size)
 {
     HakoMmapFileHandleObjectType *handle = (HakoMmapFileHandleObjectType *)malloc(sizeof(HakoMmapFileHandleObjectType));
     if (handle == nullptr) {
@@ -18,20 +18,24 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size)
     handle->mmap_obj.obj = nullptr;
     struct stat stbuf;
     int ret = stat(filepath.c_str(), &stbuf);
-    if ((ret < 0) || (stbuf.st_size < size)) {
+    if ((ret < 0) || (stbuf.st_size < 0) || (static_cast<size_t>(stbuf.st_size) < size)) {
         int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0644);
         if (fd < 0) {
             printf("ERROR: can not create mmap file:%s\n", filepath.c_str());
             return nullptr;
         }
-        if (truncate(filepath.c_str(), size) != 0) {
+        if (size > static_cast<size_t>(std::numeric_limits<off_t>::max())) {
+            close(fd);
+            return nullptr;
+        }
+        if (truncate(filepath.c_str(), static_cast<off_t>(size)) != 0) {
             printf("ERROR: can not set size of mmap file:%s\n", filepath.c_str());
             perror("ftruncate");
             close(fd);
             return nullptr;
         }
         close(fd);
-        printf("INFO: CREATED MMAP FILE: %s size=%d\n", filepath.c_str(), size);
+        printf("INFO: CREATED MMAP FILE: %s size=%zu\n", filepath.c_str(), size);
     }
     handle->mmap_obj.obj = handle;
     handle->size = size;

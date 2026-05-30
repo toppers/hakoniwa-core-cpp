@@ -7,7 +7,7 @@ typedef struct {
     HANDLE handle;
     HANDLE map_handle;
     void *mmap_addr;
-    int size;
+    size_t size;
 } WinHandleType;
 
 extern int  win_open_rw(const char* filepath, WinHandleType *whp);

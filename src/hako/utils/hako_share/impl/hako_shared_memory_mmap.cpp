@@ -35,17 +35,23 @@ static hako::utils::SharedMemoryInfoType* find_memory_info(
 }
 }
 
-int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, int32_t size)
+int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, size_t size)
 {
-    int32_t total_size = size + sizeof(SharedMemoryMetaDataType);
+    if (size > std::numeric_limits<size_t>::max() - sizeof(SharedMemoryMetaDataType)) {
+        printf("ERROR: create_memory() size overflow key=%d size=%zu\n", key, size);
+        return -1;
+    }
+
+    size_t total_size = size + sizeof(SharedMemoryMetaDataType);
     std::string filepath = get_core_filepath(key);
 
     HakoMmapObjectType *mmap_obj = hako_mmap_create(filepath, total_size);
     if (mmap_obj == nullptr) {
-        printf("ERROR: hako_mmap_create() id=%d size=%d error=%d\n", key, size, errno);
+        printf("ERROR: hako_mmap_create() id=%d size=%zu total_size=%zu error=%d\n",
+               key, size, total_size, errno);
         return -1;
     }
-    //printf("INFO: hako_mmap_create() key=%d size=%d \n", key, size);
+
     void *shared_memory = mmap_obj->mmap_addr;
 
     int32_t sem_id = hako::utils::sem::flock::create(key);
@@ -55,9 +61,26 @@ int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, int32_t si
     }
 
     SharedMemoryMetaDataType *metap = static_cast<SharedMemoryMetaDataType*>(shared_memory);
+    metap->magic = HAKO_SHM_MAGIC;
+    metap->version = HAKO_SHM_LAYOUT_VERSION;
     metap->sem_id = sem_id;
     metap->shm_id = -1;
+
+    if (size > std::numeric_limits<decltype(metap->data_size)>::max()) {
+        printf("ERROR: metadata data_size overflow key=%d size=%zu\n", key, size);
+        hako_mmap_destroy(mmap_obj);
+        return -1;
+    }
     metap->data_size = size;
+    std::cout
+        << "INFO: HakoSharedMemoryMmap::create_memory()"
+        << " key=" << key
+        << " magic=0x" << std::hex << metap->magic << std::dec
+        << " version=" << metap->version
+        << " data_size=" << metap->data_size
+        << " total_size=" << total_size
+        << std::endl;
+
     SharedMemoryInfoType info;
     info.addr = metap;
     info.shm_id = -1;
@@ -66,12 +89,47 @@ int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, int32_t si
     this->shared_memory_map_.insert(std::make_pair(key, info));
     return 0;
 }
-void* hako::utils::HakoSharedMemoryMmap::load_memory(int32_t key, int32_t size)
+void* hako::utils::HakoSharedMemoryMmap::load_memory(int32_t key, size_t size)
 {
     if (size == 0) {
         return nullptr;
     }
-    return this->load_memory_shmid(key, -1);
+    SharedMemoryMetaDataType *metap =
+        static_cast<SharedMemoryMetaDataType*>(this->load_memory_shmid(key, -1));
+
+    if (metap == nullptr) {
+        std::cout << "ERROR: load_memory() load_memory_shmid() return nullptr key=" << key << " size=" << size << std::endl;
+        return nullptr;
+    }
+
+    if (metap->magic != HAKO_SHM_MAGIC) {
+        std::cout << "ERROR: shared memory magic mismatch key=" << key << " magic=" << metap->magic << " expected=" << HAKO_SHM_MAGIC << std::endl;
+        return nullptr;
+    }
+
+    if (metap->version != HAKO_SHM_LAYOUT_VERSION) {
+        std::cout << "ERROR: shared memory layout version mismatch key=" << key << " version=" << metap->version << " expected=" << HAKO_SHM_LAYOUT_VERSION << std::endl;
+        return nullptr;
+    }
+    if (metap->data_size != static_cast<uint64_t>(size)) {
+        std::cout
+            << "ERROR: shared memory data_size mismatch"
+            << " key=" << key
+            << " data_size=" << metap->data_size
+            << " requested_size=" << size
+            << std::endl;
+        return nullptr;
+    }    
+    std::cout
+        << "INFO: HakoSharedMemoryMmap::load_memory()"
+        << " key=" << key
+        << " magic=0x" << std::hex << metap->magic << std::dec
+        << " version=" << metap->version
+        << " data_size=" << metap->data_size
+        << " requested_size=" << size
+        << std::endl;
+
+    return static_cast<void*>(metap);
 }
 
 void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t shmid)

@@ -9,7 +9,7 @@ typedef struct {
     void *obj; /* do not use. for implementation. */
 } HakoMmapObjectType;
 
-extern HakoMmapObjectType* hako_mmap_create(std::string &filepath, int size);
+extern HakoMmapObjectType* hako_mmap_create(std::string &filepath, size_t size);
 extern HakoMmapObjectType* hako_mmap_open(std::string &filepath);
 extern void hako_mmap_close(HakoMmapObjectType *handle);
 extern void hako_mmap_destroy(HakoMmapObjectType *handle);

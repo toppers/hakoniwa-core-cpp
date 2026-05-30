@@ -147,8 +147,8 @@ namespace hako::data {
     } HakoAssetEntryEventType;
 
     typedef struct {
-        int32_t                 offset;
-        size_t                  size;
+        uint64_t                  offset;
+        uint64_t                  size;
     } HakoPduChannelType;
 
     typedef struct {
