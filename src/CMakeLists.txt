@@ -36,6 +36,7 @@ add_library(
     hako/core/simulation/time/hako_time.cpp
     hako/core/rpc/hako_internal_rpc.cpp
     #for filelock && mmap
+    hako/utils/hako_share/impl/hako_flock_wait.cpp
     hako/utils/hako_share/impl/hako_sem_flock.cpp
     hako/utils/hako_share/impl/hako_shared_memory_mmap.cpp
     hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp

@@ -155,6 +155,33 @@ void win_flock_acquire(WinHandleType *whp)
         printf("win_flock_acquire() error:%lu\n", err);
     }
 }
+
+int win_flock_try_acquire(WinHandleType *whp)
+{
+    OVERLAPPED overlap;
+    memset((void*)&overlap, 0, sizeof(OVERLAPPED));
+    overlap.Offset = 0;
+    overlap.OffsetHigh = 0;
+
+    DWORD len_low = hako_win_low32(whp->size);
+    DWORD len_high = hako_win_high32(whp->size);
+    BOOL ret = LockFileEx(
+        whp->handle,
+        LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+        0,
+        len_low,
+        len_high,
+        &overlap
+    );
+    if (ret != FALSE) {
+        return 0;
+    }
+    DWORD err = GetLastError();
+    if (err == ERROR_LOCK_VIOLATION) {
+        return 1;
+    }
+    return -1;
+}
 void win_flock_release(WinHandleType *whp)
 {
     OVERLAPPED overlap;

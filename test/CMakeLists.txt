@@ -5,12 +5,14 @@ project(hakoniwa-core
 )
 
 find_package(GTest REQUIRED)
+find_package(Threads REQUIRED)
 
 include(GoogleTest)
 
 add_executable(
     hako-test
     hako/hako_shared_memory_test.cpp
+    hako/hako_flock_wait_test.cpp
     hako/hako_test.cpp
     hako/hako_time_test.cpp
     hako/main.cpp
@@ -25,7 +27,7 @@ target_include_directories(
 
 target_link_libraries(hako-test
     hako
-    -pthread
+    Threads::Threads
     GTest::GTest
 )
 

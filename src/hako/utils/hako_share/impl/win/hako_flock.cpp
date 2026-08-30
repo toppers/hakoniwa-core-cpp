@@ -1,5 +1,9 @@
 #include "utils/hako_share/impl/hako_flock.hpp"
+#include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "types/win/os_file_io.hpp"
+
+#include <chrono>
+#include <thread>
 
 typedef struct {
     WinHandleType fd;
@@ -72,7 +76,25 @@ void hako_flock_acquire(HakoFlockObjectType *handle)
     HakoFlockFileHandleObjectType *real;
     real = (HakoFlockFileHandleObjectType*)handle->obj;
     if (handle->lock_count <= 0) {
-        (void)win_flock_acquire(&real->fd);
+        if (!hako_flock_wait_is_enabled()) {
+            (void)win_flock_acquire(&real->fd);
+        }
+        else {
+            const uint64_t started_at_ms = hako_flock_wait_now_ms();
+            while (true) {
+                hako_flock_wait_checkpoint(started_at_ms);
+                int ret = win_flock_try_acquire(&real->fd);
+                if (ret == 0) {
+                    break;
+                }
+                if (ret < 0) {
+                    throw HakoFlockWaitError(
+                        HakoFlockWaitErrorType::SystemError,
+                        "file-lock acquisition failed");
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+        }
         handle->lock_count = 1;
     }
     else {

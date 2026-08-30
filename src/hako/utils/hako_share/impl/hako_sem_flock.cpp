@@ -1,5 +1,6 @@
 #include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/impl/hako_flock.hpp"
+#include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "utils/hako_config_loader.hpp"
 //#include "utils/hako_logger.hpp"
 #include "utils/hako_assert.hpp"
@@ -53,10 +54,12 @@ static int hako_sem_init(int index, int value)
 static void hako_sem_down(int index)
 {
     int value;
+    const uint64_t started_at_ms = hako_flock_wait_now_ms();
     std::unique_lock<std::mutex> lock(mtx);
     //pid_t pid = getpid();
     hako_sem_load();
     //printf("sem_down[%d][%lld]: acquire\n", index, pid);
+    hako_flock_wait_checkpoint(started_at_ms);
     hako_flock_acquire(flock_handle);
     while (true) {
         hako_flock_read(flock_handle, index, &value);
@@ -66,8 +69,10 @@ static void hako_sem_down(int index)
         }
         hako_flock_release(flock_handle);
         lock.unlock();
+        hako_flock_wait_checkpoint(started_at_ms);
         //printf("sem_down[%d][%lld]: tmp release\n", index, pid);
         usleep(20*1000);
+        hako_flock_wait_checkpoint(started_at_ms);
         lock.lock();
         //printf("sem_down[%d][%lld]: tmp acquire\n", index, pid);
         hako_flock_acquire(flock_handle);

@@ -20,6 +20,8 @@ extern void win_munmap(WinHandleType *whp);
 extern void win_close(WinHandleType *whp);
 
 extern void win_flock_acquire(WinHandleType *whp);
+/* Returns 0 when acquired, 1 when busy, and -1 on another error. */
+extern int win_flock_try_acquire(WinHandleType *whp);
 extern void win_flock_release(WinHandleType *whp);
 extern int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset);
 extern int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset);

@@ -3,30 +3,33 @@
 
 #include "hako.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
-#include <unistd.h>
 #include <cstdlib>
 #include <fstream>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <filesystem>
 #include <string>
 
 
 int main(int argc, char *argv[])
 {
     // Ensure tests use mmap with a writable path.
-    const std::string base_dir = "/tmp/hakoniwa";
-    const std::string mmap_dir = "/tmp/hakoniwa/mmap";
-    (void)mkdir(base_dir.c_str(), 0755);
-    (void)mkdir(mmap_dir.c_str(), 0755);
+    const std::filesystem::path base_dir =
+        std::filesystem::temp_directory_path() / "hakoniwa";
+    const std::filesystem::path mmap_dir = base_dir / "mmap";
+    std::filesystem::create_directories(mmap_dir);
 
-    const std::string config_path = "/tmp/hako_test_config.json";
+    const std::filesystem::path config_path =
+        std::filesystem::temp_directory_path() / "hako_test_config.json";
     std::ofstream ofs(config_path);
     ofs << "{\n"
            "    \"shm_type\": \"mmap\",\n"
-           "    \"core_mmap_path\": \"" << mmap_dir << "\"\n"
+           "    \"core_mmap_path\": \"" << mmap_dir.generic_string() << "\"\n"
            "}\n";
     ofs.close();
-    setenv("HAKO_CONFIG_PATH", config_path.c_str(), 1);
+#ifdef _WIN32
+    _putenv_s("HAKO_CONFIG_PATH", config_path.string().c_str());
+#else
+    setenv("HAKO_CONFIG_PATH", config_path.string().c_str(), 1);
+#endif
 
     ::testing::InitGoogleTest(&argc, argv);
 
