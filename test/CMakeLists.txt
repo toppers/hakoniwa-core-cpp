@@ -33,7 +33,8 @@ target_link_libraries(hako-test
     GTest::GTest
 )
 
-gtest_add_tests(TARGET hako-test)
+gtest_add_tests(TARGET hako-test TEST_LIST hako_gtests)
+set_tests_properties(${hako_gtests} PROPERTIES TIMEOUT 15)
 
 add_executable(
     hako-master-lock-process

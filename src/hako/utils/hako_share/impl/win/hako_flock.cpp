@@ -133,14 +133,19 @@ void hako_flock_release(HakoFlockObjectType *handle)
 {
     HakoFlockFileHandleObjectType *real;
     real = (HakoFlockFileHandleObjectType*)handle->obj;
-    if (handle->lock_count > 0) {
-        handle->lock_count--;
-    }
-
     if (handle->lock_count <= 0) {
-        (void)win_flock_release(&real->fd);
+        return;
     }
-    return;
+    if (handle->lock_count > 1) {
+        handle->lock_count--;
+        return;
+    }
+    if (win_flock_release(&real->fd) != 0) {
+        throw HakoFlockWaitError(
+            HakoFlockWaitErrorType::SystemError,
+            "file-lock release failed");
+    }
+    handle->lock_count = 0;
 }
 
 void hako_flock_write(HakoFlockObjectType *handle, int index, int value)

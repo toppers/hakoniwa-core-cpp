@@ -118,6 +118,25 @@ TEST(HakoFlockWaitTest, AcquiresImmediatelyWhenFileIsUnlocked)
     hako_flock_release(file.first());
 }
 
+TEST(HakoFlockWaitTest, GrowingLockedFileDoesNotChangeWindowsUnlockRange)
+{
+    FlockFile file;
+    ASSERT_NE(file.first(), nullptr);
+    ASSERT_NE(file.second(), nullptr);
+
+    const uint64_t original_size = hako_flock_size(file.first());
+    const unsigned char metadata[48]{};
+    hako_flock_acquire(file.first());
+    ASSERT_TRUE(hako_flock_write_bytes(
+        file.first(), original_size, metadata, sizeof(metadata)));
+    EXPECT_NO_THROW(hako_flock_release(file.first()));
+
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({1000, &interrupted});
+    EXPECT_NO_THROW(hako_flock_acquire(file.second()));
+    EXPECT_NO_THROW(hako_flock_release(file.second()));
+}
+
 TEST(HakoFlockWaitTest, TimesOutWithoutClaimingHeldFileLock)
 {
     FlockFile file;

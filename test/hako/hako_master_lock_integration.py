@@ -25,6 +25,15 @@ def require_prefix(result: subprocess.CompletedProcess[str], prefix: str) -> Non
         )
 
 
+def require_last_line(result: subprocess.CompletedProcess[str], expected: str) -> None:
+    lines = [line for line in result.stdout.splitlines() if line]
+    if result.returncode != 0 or not lines or lines[-1] != expected:
+        raise AssertionError(
+            f"expected final line {expected!r}, rc={result.returncode}, "
+            f"stdout={result.stdout!r}, stderr={result.stderr!r}"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--helper", required=True)
@@ -39,6 +48,12 @@ def main() -> int:
         )
         env = dict(os.environ)
         env["HAKO_CONFIG_PATH"] = str(config)
+
+        # The second process proves that initialization released the exact
+        # Windows byte range it acquired. Each subprocess has its own 5 s
+        # watchdog in run(), so a leaked lock fails instead of hanging CI.
+        require_last_line(run(args.helper, "lock-unlock", env), "ROUNDTRIP_OK")
+        require_last_line(run(args.helper, "lock-unlock", env), "ROUNDTRIP_OK")
 
         crashed = run(args.helper, "crash", env)
         if crashed.returncode != 0:

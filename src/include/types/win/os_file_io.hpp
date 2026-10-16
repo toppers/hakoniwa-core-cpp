@@ -11,6 +11,8 @@ typedef struct {
     HANDLE map_handle;
     void *mmap_addr;
     size_t size;
+    /* Exact byte range passed to the successful LockFileEx call. */
+    size_t locked_size;
 } WinHandleType;
 
 extern int  win_open_rw(const char* filepath, WinHandleType *whp);
@@ -24,7 +26,8 @@ extern void win_close(WinHandleType *whp);
 extern int win_flock_acquire(WinHandleType *whp);
 /* Returns 0 when acquired, 1 when busy, and -1 on another error. */
 extern int win_flock_try_acquire(WinHandleType *whp);
-extern void win_flock_release(WinHandleType *whp);
+/* Returns 0 on success and -1 when UnlockFileEx fails. */
+extern int win_flock_release(WinHandleType *whp);
 extern int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset);
 extern int win_pread(WinHandleType *whp, void* buf, size_t count, off_t offset);
 

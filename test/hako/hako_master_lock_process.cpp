@@ -93,6 +93,15 @@ int main(int argc, char **argv)
         }
         return 8;
     }
+    if (mode == "lock-unlock") {
+        if (hako::utils::sem::flock::create(sem_id) < 0) {
+            return 3;
+        }
+        hako::utils::sem::flock::master_lock(sem_id);
+        hako::utils::sem::flock::master_unlock(sem_id);
+        std::cout << "ROUNDTRIP_OK" << std::endl;
+        return 0;
+    }
     if (hako::utils::sem::flock::create(sem_id) < 0) {
         return 3;
     }

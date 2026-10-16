@@ -14,8 +14,16 @@ static inline DWORD hako_win_high32(size_t value)
     return static_cast<DWORD>((static_cast<uint64_t>(value) >> 32) & 0xFFFFFFFFULL);
 }
 
+static inline size_t hako_win_lock_size(const WinHandleType *whp)
+{
+    // LockFileEx requires a non-empty byte range.  More importantly, capture
+    // this value at acquisition time: writes may grow whp->size while held.
+    return whp->size == 0 ? 1 : whp->size;
+}
+
 int  win_open_rw(const char* filepath, WinHandleType *whp)
 {
+    whp->locked_size = 0;
     wchar_t wfile[4096];
     win_filepath(filepath, wfile);
     whp->handle = CreateFileW(
@@ -49,6 +57,7 @@ int  win_open_rw(const char* filepath, WinHandleType *whp)
 
 int  win_create_rw(const char* filepath, WinHandleType *whp)
 {
+    whp->locked_size = 0;
     wchar_t wfile[4096];
     win_filepath(filepath, wfile);
     whp->handle = CreateFileW(
@@ -92,6 +101,7 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
 
 int win_create_new_rw(const char* filepath, WinHandleType *whp)
 {
+    whp->locked_size = 0;
     wchar_t wfile[4096];
     win_filepath(filepath, wfile);
     whp->handle = CreateFileW(
@@ -164,8 +174,9 @@ int win_flock_acquire(WinHandleType *whp)
     overlap.Offset = 0;
     overlap.OffsetHigh = 0;
 
-    DWORD len_low = hako_win_low32(whp->size);
-    DWORD len_high = hako_win_high32(whp->size);
+    const size_t lock_size = hako_win_lock_size(whp);
+    DWORD len_low = hako_win_low32(lock_size);
+    DWORD len_high = hako_win_high32(lock_size);
 
     BOOL ret = LockFileEx(
         whp->handle,
@@ -181,6 +192,7 @@ int win_flock_acquire(WinHandleType *whp)
         printf("win_flock_acquire() error:%lu\n", err);
         return -1;
     }
+    whp->locked_size = lock_size;
     return 0;
 }
 
@@ -191,8 +203,9 @@ int win_flock_try_acquire(WinHandleType *whp)
     overlap.Offset = 0;
     overlap.OffsetHigh = 0;
 
-    DWORD len_low = hako_win_low32(whp->size);
-    DWORD len_high = hako_win_high32(whp->size);
+    const size_t lock_size = hako_win_lock_size(whp);
+    DWORD len_low = hako_win_low32(lock_size);
+    DWORD len_high = hako_win_high32(lock_size);
     BOOL ret = LockFileEx(
         whp->handle,
         LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
@@ -202,6 +215,7 @@ int win_flock_try_acquire(WinHandleType *whp)
         &overlap
     );
     if (ret != FALSE) {
+        whp->locked_size = lock_size;
         return 0;
     }
     DWORD err = GetLastError();
@@ -210,15 +224,18 @@ int win_flock_try_acquire(WinHandleType *whp)
     }
     return -1;
 }
-void win_flock_release(WinHandleType *whp)
+int win_flock_release(WinHandleType *whp)
 {
+    if (whp->locked_size == 0) {
+        return -1;
+    }
     OVERLAPPED overlap;
     memset((void*)&overlap, 0, sizeof(OVERLAPPED));
     overlap.Offset = 0;
     overlap.OffsetHigh = 0;
 
-    DWORD len_low = hako_win_low32(whp->size);
-    DWORD len_high = hako_win_high32(whp->size);
+    DWORD len_low = hako_win_low32(whp->locked_size);
+    DWORD len_high = hako_win_high32(whp->locked_size);
 
     BOOL ret = UnlockFileEx(
         whp->handle,
@@ -231,7 +248,10 @@ void win_flock_release(WinHandleType *whp)
     if (ret == FALSE) {
         DWORD err = GetLastError();
         printf("win_flock_release() error:%lu\n", err);
+        return -1;
     }
+    whp->locked_size = 0;
+    return 0;
 }
 int win_pwrite(WinHandleType *whp, const void* buf, size_t count, off_t offset)
 {
