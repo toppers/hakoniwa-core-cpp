@@ -11,6 +11,7 @@
 #include "utils/hako_share/impl/hako_flock.hpp"
 #include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
+#include "utils/hako_share/hako_master_lock.hpp"
 
 namespace {
 
@@ -117,6 +118,25 @@ TEST(HakoFlockWaitTest, AcquiresImmediatelyWhenFileIsUnlocked)
     hako_flock_release(file.first());
 }
 
+TEST(HakoFlockWaitTest, GrowingLockedFileDoesNotChangeWindowsUnlockRange)
+{
+    FlockFile file;
+    ASSERT_NE(file.first(), nullptr);
+    ASSERT_NE(file.second(), nullptr);
+
+    const uint64_t original_size = hako_flock_size(file.first());
+    const unsigned char metadata[48]{};
+    hako_flock_acquire(file.first());
+    ASSERT_TRUE(hako_flock_write_bytes(
+        file.first(), original_size, metadata, sizeof(metadata)));
+    EXPECT_NO_THROW(hako_flock_release(file.first()));
+
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({1000, &interrupted});
+    EXPECT_NO_THROW(hako_flock_acquire(file.second()));
+    EXPECT_NO_THROW(hako_flock_release(file.second()));
+}
+
 TEST(HakoFlockWaitTest, TimesOutWithoutClaimingHeldFileLock)
 {
     FlockFile file;
@@ -190,4 +210,42 @@ TEST(HakoFlockWaitTest, TimesOutWhileLogicalMasterLockIsUnavailable)
         hako::utils::sem::flock::master_unlock(sem_id);
     }
     hako::utils::sem::flock::destroy(sem_id);
+}
+
+TEST(HakoFlockWaitTest, MasterLockMetadataTracksNormalAcquireAndRelease)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    constexpr int32_t sem_id = 0x00FF;
+    ASSERT_GE(create(sem_id), 0);
+    auto value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Unlocked);
+
+    master_lock(sem_id);
+    value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Locked);
+    EXPECT_GT(value.owner_pid, 0);
+
+    master_unlock(sem_id);
+    value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Unlocked);
+    EXPECT_EQ(value.owner_pid, 0);
+    destroy(sem_id);
+}
+
+TEST(HakoFlockWaitTest, ReopeningFlockDoesNotResetAssetSemaphore)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    constexpr int32_t sem_id = 0x00FF;
+    ASSERT_GE(create(sem_id), 0);
+    asset_up(sem_id, 0);
+    ASSERT_GE(create(sem_id), 0);
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({100, &interrupted});
+    EXPECT_NO_THROW(asset_down(sem_id, 0));
+    destroy(sem_id);
 }

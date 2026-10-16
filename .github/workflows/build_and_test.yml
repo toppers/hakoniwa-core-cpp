@@ -9,8 +9,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -34,8 +35,14 @@ jobs:
         run: |
           & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install gtest:x64-windows
 
-      - name: Build and Test (Linux)
-        if: runner.os == 'Linux'
+      - name: Install deps (gtest, macOS)
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install googletest
+
+      - name: Build and Test (POSIX)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           bash ./build.bash test

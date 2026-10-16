@@ -11,7 +11,8 @@ typedef struct {
 } HakoFlockFileHandleObjectType;
 
 
-HakoFlockObjectType* hako_flock_create(std::string &filepath)
+HakoFlockObjectType* hako_flock_create(
+    std::string &filepath, uint64_t create_size)
 {
     HakoFlockFileHandleObjectType *handle = (HakoFlockFileHandleObjectType *)malloc(sizeof(HakoFlockFileHandleObjectType));
     if (handle == nullptr) {
@@ -19,16 +20,12 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
     }
     handle->fd = -1;
     handle->flock_obj.lock_count = 0;
+    handle->flock_obj.created = false;
     handle->flock_obj.obj = nullptr;
-    struct stat stbuf;
-    int ret = stat(filepath.c_str(), &stbuf);
-    if (ret < 0) {
-        int fd = open(filepath.c_str(), O_CREAT | O_TRUNC | O_RDWR, 0644);
-        if (fd < 0) {
-            printf("ERROR: can not create flock file:%s\n", filepath.c_str());
-            return nullptr;
-        }
-        if (ftruncate(fd, sizeof(int) * HAKO_CONFIG_MAX_SEM) < 0) {
+    int fd = open(filepath.c_str(), O_CREAT | O_EXCL | O_RDWR, 0644);
+    if (fd >= 0) {
+        handle->flock_obj.created = true;
+        if (ftruncate(fd, static_cast<off_t>(create_size)) < 0) {
             printf("ERROR: can not set size of flock file:%s\n", filepath.c_str());
             perror("ftruncate");
             close(fd);
@@ -36,6 +33,11 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
         }
         close(fd);
         printf("INFO: CREATED FLOCK FILE: %s\n", filepath.c_str());
+    }
+    else if (errno != EEXIST) {
+        printf("ERROR: can not create flock file:%s\n", filepath.c_str());
+        free(handle);
+        return nullptr;
     }
     handle->flock_obj.obj = handle;
     handle->fd = open(filepath.c_str(), O_RDWR);
@@ -54,6 +56,7 @@ HakoFlockObjectType* hako_flock_open(std::string &filepath)
     }
     handle->fd = -1;
     handle->flock_obj.lock_count = 0;
+    handle->flock_obj.created = false;
     handle->flock_obj.obj = nullptr;
     struct stat stbuf;
     int ret = stat(filepath.c_str(), &stbuf);
@@ -98,7 +101,14 @@ void hako_flock_acquire(HakoFlockObjectType *handle)
     real = (HakoFlockFileHandleObjectType*)handle->obj;
     if (handle->lock_count <= 0) {
         if (!hako_flock_wait_is_enabled()) {
-            (void)flock(real->fd, LOCK_EX);
+            while (flock(real->fd, LOCK_EX) != 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                throw HakoFlockWaitError(
+                    HakoFlockWaitErrorType::SystemError,
+                    "file-lock acquisition failed");
+            }
         }
         else {
             const uint64_t started_at_ms = hako_flock_wait_now_ms();
@@ -121,6 +131,24 @@ void hako_flock_acquire(HakoFlockObjectType *handle)
         handle->lock_count++;
     }
     return;
+}
+
+int hako_flock_try_acquire(HakoFlockObjectType *handle)
+{
+    HakoFlockFileHandleObjectType *real =
+        (HakoFlockFileHandleObjectType*)handle->obj;
+    if (handle->lock_count > 0) {
+        handle->lock_count++;
+        return 0;
+    }
+    if (flock(real->fd, LOCK_EX | LOCK_NB) == 0) {
+        handle->lock_count = 1;
+        return 0;
+    }
+    if ((errno == EWOULDBLOCK) || (errno == EAGAIN) || (errno == EINTR)) {
+        return 1;
+    }
+    return -1;
 }
 
 void hako_flock_release(HakoFlockObjectType *handle)
@@ -155,4 +183,33 @@ void hako_flock_read(HakoFlockObjectType *handle, int index, int *rvalue)
     if (ret < 0) {
         printf("ERROR: hako_flock_read() error=%d\n", errno);
     }
+}
+
+bool hako_flock_write_bytes(
+    HakoFlockObjectType *handle, uint64_t offset, const void *data, size_t size)
+{
+    HakoFlockFileHandleObjectType *real =
+        (HakoFlockFileHandleObjectType*)handle->obj;
+    return pwrite(real->fd, data, size, static_cast<off_t>(offset)) ==
+           static_cast<ssize_t>(size);
+}
+
+bool hako_flock_read_bytes(
+    HakoFlockObjectType *handle, uint64_t offset, void *data, size_t size)
+{
+    HakoFlockFileHandleObjectType *real =
+        (HakoFlockFileHandleObjectType*)handle->obj;
+    return pread(real->fd, data, size, static_cast<off_t>(offset)) ==
+           static_cast<ssize_t>(size);
+}
+
+uint64_t hako_flock_size(HakoFlockObjectType *handle)
+{
+    HakoFlockFileHandleObjectType *real =
+        (HakoFlockFileHandleObjectType*)handle->obj;
+    struct stat st{};
+    if (fstat(real->fd, &st) != 0 || st.st_size < 0) {
+        return 0;
+    }
+    return static_cast<uint64_t>(st.st_size);
 }
