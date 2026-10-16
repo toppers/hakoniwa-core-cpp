@@ -13,7 +13,9 @@ typedef struct {
     void *obj; /* do not use. for implementation. */
 } HakoFlockObjectType;
 
-extern HakoFlockObjectType* hako_flock_create(std::string &filepath);
+extern HakoFlockObjectType* hako_flock_create(
+    std::string &filepath,
+    uint64_t create_size = static_cast<uint64_t>(sizeof(int)) * HAKO_CONFIG_MAX_SEM);
 extern HakoFlockObjectType* hako_flock_open(std::string &filepath);
 extern void hako_flock_acquire(HakoFlockObjectType *handle);
 /* Returns 0 when acquired, 1 when busy, and -1 on another error. */

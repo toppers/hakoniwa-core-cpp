@@ -13,6 +13,7 @@
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <signal.h>
+#include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,7 +24,7 @@
 
 namespace {
 
-bool process_start_token(int64_t pid, uint64_t *token)
+bool process_start_token(int64_t pid, uint64_t *token, bool *terminated = nullptr)
 {
     if (pid <= 0 || token == nullptr) {
         return false;
@@ -36,12 +37,21 @@ bool process_start_token(int64_t pid, uint64_t *token)
     }
     FILETIME creation{}, exit{}, kernel{}, user{};
     const bool ok = GetProcessTimes(process, &creation, &exit, &kernel, &user) != FALSE;
-    CloseHandle(process);
     if (!ok) {
+        CloseHandle(process);
         return false;
     }
     *token = (static_cast<uint64_t>(creation.dwHighDateTime) << 32) |
              static_cast<uint64_t>(creation.dwLowDateTime);
+    if (terminated != nullptr) {
+        DWORD exit_code = 0;
+        if (!GetExitCodeProcess(process, &exit_code)) {
+            CloseHandle(process);
+            return false;
+        }
+        *terminated = exit_code != STILL_ACTIVE;
+    }
+    CloseHandle(process);
     return true;
 #elif defined(__APPLE__)
     int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, static_cast<int>(pid)};
@@ -52,6 +62,9 @@ bool process_start_token(int64_t pid, uint64_t *token)
     }
     *token = static_cast<uint64_t>(info.kp_proc.p_starttime.tv_sec) * 1000000ULL +
              static_cast<uint64_t>(info.kp_proc.p_starttime.tv_usec);
+    if (terminated != nullptr) {
+        *terminated = info.kp_proc.p_stat == SZOMB;
+    }
     return true;
 #else
     std::ifstream stat("/proc/" + std::to_string(pid) + "/stat");
@@ -65,9 +78,16 @@ bool process_start_token(int64_t pid, uint64_t *token)
     }
     std::istringstream fields(line.substr(end_comm + 2));
     std::string value;
+    char state = '\0';
     for (int field = 3; field <= 22; ++field) {
         if (!(fields >> value)) {
             return false;
+        }
+        if (field == 3) {
+            if (value.size() != 1) {
+                return false;
+            }
+            state = value[0];
         }
     }
     try {
@@ -75,6 +95,9 @@ bool process_start_token(int64_t pid, uint64_t *token)
     }
     catch (...) {
         return false;
+    }
+    if (terminated != nullptr) {
+        *terminated = state == 'Z' || state == 'X' || state == 'x';
     }
     return true;
 #endif
@@ -127,8 +150,12 @@ HakoProcessIdentityStatus hako_check_process_identity(
     }
 #endif
     uint64_t actual = 0;
-    if (!process_start_token(identity.pid, &actual)) {
+    bool terminated = false;
+    if (!process_start_token(identity.pid, &actual, &terminated)) {
         return HakoProcessIdentityStatus::Unknown;
+    }
+    if (terminated) {
+        return HakoProcessIdentityStatus::Dead;
     }
     return actual == identity.start_token
         ? HakoProcessIdentityStatus::Alive

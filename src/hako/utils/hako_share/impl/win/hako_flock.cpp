@@ -11,7 +11,8 @@ typedef struct {
 } HakoFlockFileHandleObjectType;
 
 
-HakoFlockObjectType* hako_flock_create(std::string &filepath)
+HakoFlockObjectType* hako_flock_create(
+    std::string &filepath, uint64_t create_size)
 {
     HakoFlockFileHandleObjectType *handle = (HakoFlockFileHandleObjectType *)malloc(sizeof(HakoFlockFileHandleObjectType));
     if (handle == nullptr) {
@@ -20,7 +21,7 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
     handle->flock_obj.lock_count = 0;
     handle->flock_obj.created = false;
     handle->flock_obj.obj = nullptr;
-    handle->fd.size = sizeof(int) * HAKO_CONFIG_MAX_SEM;
+    handle->fd.size = static_cast<size_t>(create_size);
     int ret = win_create_new_rw(filepath.c_str(), &handle->fd);
     if (ret == 0) {
         handle->flock_obj.created = true;

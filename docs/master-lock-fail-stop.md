@@ -18,6 +18,11 @@ that reused the same PID. Linux uses `/proc/<pid>/stat` start time, macOS uses
 the kernel process start time returned by `sysctl`, and Windows uses the process
 creation `FILETIME`.
 
+An unreaped zombie is not a live owner. Linux treats `/proc/<pid>/stat`
+states `Z` and `X` as dead, and macOS treats `SZOMB` as dead. Failure to read
+or interpret a process state remains `UNKNOWN`; it is never promoted to
+`ABORT` without positive evidence.
+
 ## Update protocol
 
 All counter and metadata updates occur while holding the OS file lock.
@@ -36,8 +41,14 @@ creates a new `flock.bin`. Opening an existing file never resets a live master
 counter. A legacy counter-only file is retained for diagnosis and classified as
 `UNKNOWN` rather than silently upgraded.
 
+The creator sizes a new file for the complete versioned record before
+initializing it. A simultaneous opener that observes this new-format size but
+not yet a valid checksum waits for a bounded two seconds for initialization to
+finish. The legacy counter-only size is never treated as in-progress, and the
+default inspection path remains non-blocking.
+
 Runtime detection writes its diagnostic directly to standard error before
 throwing `MasterLockStateError`. This path does not use Hakoniwa shared-memory
-logging and therefore cannot recursively acquire the failed master lock. C API
-entry points already catch C++ exceptions and return their established failure
-values, which keeps exceptions from crossing C/Python boundaries.
+logging and therefore cannot recursively acquire the failed master lock. API
+bindings must catch this exception at their C or language-runtime boundary and
+translate it to that API's established failure representation.

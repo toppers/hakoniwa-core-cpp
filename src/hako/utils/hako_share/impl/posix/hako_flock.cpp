@@ -11,7 +11,8 @@ typedef struct {
 } HakoFlockFileHandleObjectType;
 
 
-HakoFlockObjectType* hako_flock_create(std::string &filepath)
+HakoFlockObjectType* hako_flock_create(
+    std::string &filepath, uint64_t create_size)
 {
     HakoFlockFileHandleObjectType *handle = (HakoFlockFileHandleObjectType *)malloc(sizeof(HakoFlockFileHandleObjectType));
     if (handle == nullptr) {
@@ -24,7 +25,7 @@ HakoFlockObjectType* hako_flock_create(std::string &filepath)
     int fd = open(filepath.c_str(), O_CREAT | O_EXCL | O_RDWR, 0644);
     if (fd >= 0) {
         handle->flock_obj.created = true;
-        if (ftruncate(fd, sizeof(int) * HAKO_CONFIG_MAX_SEM) < 0) {
+        if (ftruncate(fd, static_cast<off_t>(create_size)) < 0) {
             printf("ERROR: can not set size of flock file:%s\n", filepath.c_str());
             perror("ftruncate");
             close(fd);

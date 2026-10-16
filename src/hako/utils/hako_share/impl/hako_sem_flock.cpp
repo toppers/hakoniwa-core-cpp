@@ -20,6 +20,7 @@ constexpr uint32_t MASTER_LOCK_MAGIC = 0x484B464CU;
 constexpr uint16_t MASTER_LOCK_VERSION = 1;
 constexpr uint64_t MASTER_LOCK_METADATA_OFFSET =
     static_cast<uint64_t>(sizeof(int)) * HAKO_CONFIG_MAX_SEM;
+constexpr uint32_t FLOCK_INITIALIZATION_WAIT_MS = 2000;
 
 struct MasterLockMetadataV1 {
     uint32_t magic;
@@ -35,6 +36,8 @@ struct MasterLockMetadataV1 {
 
 static_assert(sizeof(MasterLockMetadataV1) == 48,
               "master lock metadata layout must remain stable");
+constexpr uint64_t MASTER_LOCK_FLOCK_SIZE =
+    MASTER_LOCK_METADATA_OFFSET + sizeof(MasterLockMetadataV1);
 
 std::mutex local_mutex;
 thread_local HakoFlockObjectType *flock_handle = nullptr;
@@ -202,6 +205,39 @@ void initialize_new_flock(HakoFlockObjectType *handle)
     hako_flock_release(handle);
 }
 
+void wait_for_existing_flock_initialization(HakoFlockObjectType *handle)
+{
+    const uint64_t initial_size = hako_flock_size(handle);
+    if (initial_size == MASTER_LOCK_METADATA_OFFSET) {
+        // Exact legacy layout: do not reinterpret it as an in-progress v1
+        // file and do not delay or modify it.
+        return;
+    }
+    const auto deadline = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(FLOCK_INITIALIZATION_WAIT_MS);
+    while (std::chrono::steady_clock::now() < deadline) {
+        const int lock_result = hako_flock_try_acquire(handle);
+        if (lock_result < 0) {
+            return;
+        }
+        if (lock_result == 0) {
+            MasterLockMetadataV1 metadata{};
+            const bool initialized = read_metadata(handle, &metadata) &&
+                metadata.magic == MASTER_LOCK_MAGIC &&
+                metadata.version == MASTER_LOCK_VERSION &&
+                metadata.size == sizeof(metadata) &&
+                metadata.checksum == metadata_checksum(metadata);
+            hako_flock_release(handle);
+            if (initialized) {
+                return;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    // A legacy or interrupted flock.bin must remain untouched.  Its first
+    // logical lock operation will report UNKNOWN through inspect_locked().
+}
+
 void semaphore_down(int index)
 {
     int value = 0;
@@ -310,12 +346,20 @@ int32_t hako::utils::sem::flock::create(int32_t key)
         hako_flock_destroy(flock_handle);
         flock_handle = nullptr;
     }
-    flock_handle = hako_flock_create(filepath);
+    flock_handle = hako_flock_create(filepath, MASTER_LOCK_FLOCK_SIZE);
     if (flock_handle == nullptr) {
         return -1;
     }
     if (flock_handle->created) {
         initialize_new_flock(flock_handle);
+    }
+    else {
+        // A concurrent creator publishes flock.bin before it can commit the
+        // versioned metadata.  Wait only here (never in the default check
+        // path) so normal simultaneous startup does not mistake that short
+        // window for a legacy/corrupt session.  The wait is bounded and does
+        // not modify legacy files.
+        wait_for_existing_flock_initialization(flock_handle);
     }
     return key;
 }

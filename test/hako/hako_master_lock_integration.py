@@ -45,6 +45,30 @@ def main() -> int:
             raise AssertionError(f"crash fixture failed: {crashed.stderr!r}")
         require_prefix(run(args.helper, "inspect", env), "ABORT LOCKED 0 ")
 
+    if os.name != "nt":
+        with tempfile.TemporaryDirectory(prefix="hako-master-lock-zombie-") as temp_dir:
+            root = Path(temp_dir)
+            config = root / "cpp_core_config.json"
+            config.write_text(
+                json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
+                encoding="utf-8",
+            )
+            env = dict(os.environ)
+            env["HAKO_CONFIG_PATH"] = str(config)
+            parent = subprocess.Popen(
+                [args.helper, "zombie-owner"], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=env,
+            )
+            try:
+                assert parent.stdout is not None
+                if parent.stdout.readline().strip() != "READY":
+                    raise AssertionError("zombie fixture did not become ready")
+                require_prefix(run(args.helper, "inspect", env), "ABORT LOCKED 0 ")
+                require_prefix(run(args.helper, "try-lock", env), "FAIL_STOP ABORT ")
+            finally:
+                parent.kill()
+                parent.wait(timeout=5)
+
     with tempfile.TemporaryDirectory(prefix="hako-master-lock-live-") as temp_dir:
         root = Path(temp_dir)
         config = root / "cpp_core_config.json"
@@ -89,6 +113,35 @@ def main() -> int:
         env = dict(os.environ)
         env["HAKO_CONFIG_PATH"] = str(config)
         require_prefix(run(args.helper, "inspect", env), "UNKNOWN UNLOCKED 0 ")
+
+    with tempfile.TemporaryDirectory(prefix="hako-master-lock-concurrent-") as temp_dir:
+        root = Path(temp_dir)
+        config = root / "cpp_core_config.json"
+        config.write_text(
+            json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
+            encoding="utf-8",
+        )
+        env = dict(os.environ)
+        env["HAKO_CONFIG_PATH"] = str(config)
+        starters = [
+            subprocess.Popen(
+                [args.helper, "recreate-inspect"], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=env,
+            )
+            for _ in range(16)
+        ]
+        for starter in starters:
+            stdout, stderr = starter.communicate(timeout=8)
+            lines = [line for line in stdout.splitlines() if line]
+            if (
+                starter.returncode != 0
+                or not lines
+                or not lines[-1].startswith("OK UNLOCKED 1 ")
+            ):
+                raise AssertionError(
+                    "concurrent initialization failed: "
+                    f"rc={starter.returncode}, stdout={stdout!r}, stderr={stderr!r}"
+                )
     return 0
 
 
