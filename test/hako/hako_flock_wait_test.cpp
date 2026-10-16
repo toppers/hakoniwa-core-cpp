@@ -12,6 +12,7 @@
 #include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/hako_master_lock.hpp"
+#include "config/hako_config.hpp"
 
 namespace {
 
@@ -236,14 +237,43 @@ TEST(HakoFlockWaitTest, MasterLockMetadataTracksNormalAcquireAndRelease)
     destroy(sem_id);
 }
 
-TEST(HakoFlockWaitTest, ReopeningFlockDoesNotResetAssetSemaphore)
+TEST(HakoFlockWaitTest, CleanMasterStartResetsStaleAssetSemaphore)
 {
     using namespace hako::utils::sem::flock;
     MmapConfigDirectory config;
-    constexpr int32_t sem_id = 0x00FF;
+    constexpr int32_t sem_id = HAKO_SHARED_MEMORY_ID_0;
     ASSERT_GE(create(sem_id), 0);
     asset_up(sem_id, 0);
     ASSERT_GE(create(sem_id), 0);
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({80, &interrupted});
+    EXPECT_THROW(asset_down(sem_id, 0), HakoFlockWaitError);
+    destroy(sem_id);
+}
+
+TEST(HakoFlockWaitTest, SecondaryMemoryCreateDoesNotResetAssetSemaphore)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    ASSERT_GE(create(HAKO_SHARED_MEMORY_ID_0), 0);
+    asset_up(HAKO_SHARED_MEMORY_ID_0, 0);
+    ASSERT_GE(create(HAKO_SHARED_MEMORY_ID_1), 0);
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({100, &interrupted});
+    EXPECT_NO_THROW(asset_down(HAKO_SHARED_MEMORY_ID_1, 0));
+    destroy(HAKO_SHARED_MEMORY_ID_1);
+}
+
+TEST(HakoFlockWaitTest, LockedMasterDoesNotResetAssetSemaphore)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    constexpr int32_t sem_id = HAKO_SHARED_MEMORY_ID_0;
+    ASSERT_GE(create(sem_id), 0);
+    asset_up(sem_id, 0);
+    master_lock(sem_id);
+    ASSERT_GE(create(sem_id), 0);
+    master_unlock(sem_id);
     volatile sig_atomic_t interrupted = 0;
     HakoFlockWaitScope scope({100, &interrupted});
     EXPECT_NO_THROW(asset_down(sem_id, 0));

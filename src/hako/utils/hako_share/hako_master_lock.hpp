@@ -15,6 +15,16 @@ enum class MasterLockHealth {
     Unknown,
 };
 
+enum class MasterLockUnknownCause {
+    None,
+    Identity,
+    Format,
+    Corrupt,
+    Unsupported,
+    Contention,
+    System,
+};
+
 enum class MasterLockState : uint32_t {
     Unlocked = 0,
     Acquiring = 1,
@@ -29,20 +39,30 @@ struct MasterLockInspection {
     int64_t owner_pid = 0;
     uint64_t owner_start_token = 0;
     uint64_t generation = 0;
+    MasterLockUnknownCause unknown_cause = MasterLockUnknownCause::None;
     std::string reason;
 };
 
 class MasterLockStateError : public std::runtime_error {
 public:
-    MasterLockStateError(MasterLockHealth health, const std::string& message)
-        : std::runtime_error(message), health_(health)
+    MasterLockStateError(
+        MasterLockHealth health,
+        const std::string& message,
+        MasterLockUnknownCause unknown_cause = MasterLockUnknownCause::None)
+        : std::runtime_error(message), health_(health),
+          unknown_cause_(unknown_cause)
     {
     }
 
     MasterLockHealth health() const noexcept { return health_; }
+    MasterLockUnknownCause unknown_cause() const noexcept
+    {
+        return unknown_cause_;
+    }
 
 private:
     MasterLockHealth health_;
+    MasterLockUnknownCause unknown_cause_;
 };
 
 /*
@@ -54,6 +74,7 @@ MasterLockInspection inspect_master_lock(uint32_t timeout_ms, bool force_wait);
 
 const char* master_lock_health_name(MasterLockHealth health);
 const char* master_lock_state_name(MasterLockState state);
+const char* master_lock_unknown_cause_name(MasterLockUnknownCause cause);
 
 } // namespace hako::utils::sem::flock
 

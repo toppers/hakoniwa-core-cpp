@@ -105,6 +105,26 @@ bool process_start_token(int64_t pid, uint64_t *token, bool *terminated = nullpt
 
 } // namespace
 
+HakoProcessIdentityStatus
+hako::utils::process_identity::detail::classify_lookup(
+    bool definitely_missing,
+    bool lookup_succeeded,
+    bool terminated,
+    uint64_t expected_start_token,
+    uint64_t actual_start_token)
+{
+    if (definitely_missing || (lookup_succeeded && terminated)) {
+        return HakoProcessIdentityStatus::Dead;
+    }
+    if (!lookup_succeeded || expected_start_token == 0 ||
+        actual_start_token == 0) {
+        return HakoProcessIdentityStatus::Unknown;
+    }
+    return actual_start_token == expected_start_token
+        ? HakoProcessIdentityStatus::Alive
+        : HakoProcessIdentityStatus::Dead;
+}
+
 bool hako_current_process_identity(HakoProcessIdentity *identity)
 {
     if (identity == nullptr) {
@@ -129,20 +149,27 @@ HakoProcessIdentityStatus hako_check_process_identity(
                                  static_cast<DWORD>(identity.pid));
     if (process == nullptr) {
         const DWORD error = GetLastError();
-        return (error == ERROR_INVALID_PARAMETER)
-            ? HakoProcessIdentityStatus::Dead
-            : HakoProcessIdentityStatus::Unknown;
+        return hako::utils::process_identity::detail::classify_lookup(
+            error == ERROR_INVALID_PARAMETER, false, false,
+            identity.start_token, 0);
     }
     DWORD exit_code = 0;
-    const bool alive = GetExitCodeProcess(process, &exit_code) && exit_code == STILL_ACTIVE;
+    const bool exit_code_available =
+        GetExitCodeProcess(process, &exit_code) != FALSE;
     CloseHandle(process);
-    if (!alive) {
-        return HakoProcessIdentityStatus::Dead;
+    if (!exit_code_available) {
+        return hako::utils::process_identity::detail::classify_lookup(
+            false, false, false, identity.start_token, 0);
+    }
+    if (exit_code != STILL_ACTIVE) {
+        return hako::utils::process_identity::detail::classify_lookup(
+            false, true, true, identity.start_token, 0);
     }
 #else
     if (kill(static_cast<pid_t>(identity.pid), 0) != 0) {
         if (errno == ESRCH) {
-            return HakoProcessIdentityStatus::Dead;
+            return hako::utils::process_identity::detail::classify_lookup(
+                true, false, false, identity.start_token, 0);
         }
         if (errno != EPERM) {
             return HakoProcessIdentityStatus::Unknown;
@@ -152,12 +179,9 @@ HakoProcessIdentityStatus hako_check_process_identity(
     uint64_t actual = 0;
     bool terminated = false;
     if (!process_start_token(identity.pid, &actual, &terminated)) {
-        return HakoProcessIdentityStatus::Unknown;
+        return hako::utils::process_identity::detail::classify_lookup(
+            false, false, false, identity.start_token, 0);
     }
-    if (terminated) {
-        return HakoProcessIdentityStatus::Dead;
-    }
-    return actual == identity.start_token
-        ? HakoProcessIdentityStatus::Alive
-        : HakoProcessIdentityStatus::Dead;
+    return hako::utils::process_identity::detail::classify_lookup(
+        false, true, terminated, identity.start_token, actual);
 }
