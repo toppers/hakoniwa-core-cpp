@@ -150,3 +150,20 @@ TEST_F(HakoTest, IHakoAssetController_GetPduChannel_Stable)
     //done
     hako::destroy();
 }
+
+#include "hako_simevent_states.hpp"
+
+/*
+ * #73: the conductor calls do_event_handling in a tight loop. Only the transitional
+ * states have work there (feedback, timeouts), so only they may take the master lock.
+ */
+TEST(HakoSimEventTest, TakesTheMasterLockOnlyInTransitionalStates)
+{
+    EXPECT_TRUE(hako::sim_event_needs_handling(HakoSim_Runnable));
+    EXPECT_TRUE(hako::sim_event_needs_handling(HakoSim_Stopping));
+    EXPECT_TRUE(hako::sim_event_needs_handling(HakoSim_Resetting));
+    EXPECT_FALSE(hako::sim_event_needs_handling(HakoSim_Stopped));
+    EXPECT_FALSE(hako::sim_event_needs_handling(HakoSim_Running));
+    EXPECT_FALSE(hako::sim_event_needs_handling(HakoSim_Terminated));
+    EXPECT_FALSE(hako::sim_event_needs_handling(HakoSim_Error));
+}
