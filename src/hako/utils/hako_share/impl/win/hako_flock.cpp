@@ -3,6 +3,7 @@
 #include "types/win/os_file_io.hpp"
 
 #include <chrono>
+#include <cstdio>
 #include <thread>
 
 typedef struct {
@@ -31,7 +32,7 @@ HakoFlockObjectType* hako_flock_create(
         ret = win_open_rw(filepath.c_str(), &handle->fd);
     }
     if (ret < 0) {
-        printf("ERROR: can not create flock file:%s\n", filepath.c_str());
+        fprintf(stderr, "ERROR: can not create flock file:%s\n", filepath.c_str());
         free(handle);
         return nullptr;
     }
@@ -51,7 +52,7 @@ HakoFlockObjectType* hako_flock_open(std::string &filepath)
     int ret = win_open_rw(filepath.c_str(), &handle->fd);
     if (ret < 0) {
         free(handle);
-        printf("ERROR: can not create flock file:%s\n", filepath.c_str());
+        fprintf(stderr, "ERROR: can not open flock file:%s\n", filepath.c_str());
         return nullptr;
     }
     handle->flock_obj.obj = handle;
@@ -154,7 +155,7 @@ void hako_flock_write(HakoFlockObjectType *handle, int index, int value)
     real = (HakoFlockFileHandleObjectType*)handle->obj;
     ssize_t ret = win_pwrite(&real->fd, (const void *)&value, sizeof(value), (index * sizeof(value)));
     if (ret < 0) {
-        printf("ERROR: hako_flock_write() returns error=%lld\n", ret);
+        fprintf(stderr, "ERROR: hako_flock_write() returns error=%lld\n", ret);
     }
 }
 
@@ -164,7 +165,7 @@ void hako_flock_read(HakoFlockObjectType *handle, int index, int *rvalue)
     real = (HakoFlockFileHandleObjectType*)handle->obj;
     ssize_t ret = win_pread(&real->fd, (void *)rvalue, sizeof(int), (index * sizeof(int)));
     if (ret < 0) {
-        printf("ERROR: hako_flock_read() returns error=%lld\n", ret);
+        fprintf(stderr, "ERROR: hako_flock_read() returns error=%lld\n", ret);
     }
 }
 
