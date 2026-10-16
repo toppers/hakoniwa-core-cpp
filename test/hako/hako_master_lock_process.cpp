@@ -1,5 +1,6 @@
 #include "utils/hako_share/hako_master_lock.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
+#include "utils/hako_share/impl/hako_flock.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -42,6 +43,22 @@ int main(int argc, char **argv)
         }
         print_inspection();
         return 0;
+    }
+    if (mode == "legacy-hold") {
+        const char *configured_path = std::getenv("HAKO_TEST_FLOCK_PATH");
+        if (configured_path == nullptr) {
+            return 10;
+        }
+        std::string path = configured_path;
+        HakoFlockObjectType *handle = hako_flock_open(path);
+        if (handle == nullptr) {
+            return 9;
+        }
+        hako_flock_acquire(handle);
+        std::cout << "READY" << std::endl;
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
     }
 #ifndef WIN32
     if (mode == "zombie-owner") {

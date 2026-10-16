@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -34,6 +35,18 @@ def require_last_line(result: subprocess.CompletedProcess[str], expected: str) -
         )
 
 
+def wait_until_ready(process: subprocess.Popen[str]) -> None:
+    assert process.stdout is not None
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        line = process.stdout.readline()
+        if line == "":
+            raise AssertionError(f"holder exited before READY: rc={process.poll()}")
+        if line.strip() == "READY":
+            return
+    raise AssertionError("holder did not become ready")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--helper", required=True)
@@ -60,6 +73,45 @@ def main() -> int:
             raise AssertionError(f"crash fixture failed: {crashed.stderr!r}")
         require_prefix(run(args.helper, "inspect", env), "ABORT LOCKED 0 ")
 
+    with tempfile.TemporaryDirectory(prefix="hako-master-lock-waiter-") as temp_dir:
+        root = Path(temp_dir)
+        config = root / "cpp_core_config.json"
+        config.write_text(
+            json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
+            encoding="utf-8",
+        )
+        env = dict(os.environ)
+        env["HAKO_CONFIG_PATH"] = str(config)
+        holder = subprocess.Popen(
+            [args.helper, "hold"], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, env=env,
+        )
+        waiter = None
+        try:
+            wait_until_ready(holder)
+            waiter = subprocess.Popen(
+                [args.helper, "try-lock"], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=env,
+            )
+            time.sleep(0.2)
+            if waiter.poll() is not None:
+                raise AssertionError("waiter did not wait for the live owner")
+            holder.kill()
+            holder.wait(timeout=5)
+            stdout, stderr = waiter.communicate(timeout=5)
+            if waiter.returncode != 0 or not stdout.startswith("FAIL_STOP ABORT "):
+                raise AssertionError(
+                    "waiting caller did not detect owner death: "
+                    f"rc={waiter.returncode}, stdout={stdout!r}, stderr={stderr!r}"
+                )
+        finally:
+            if holder.poll() is None:
+                holder.kill()
+                holder.wait(timeout=5)
+            if waiter is not None and waiter.poll() is None:
+                waiter.kill()
+                waiter.wait(timeout=5)
+
     if os.name != "nt":
         with tempfile.TemporaryDirectory(prefix="hako-master-lock-zombie-") as temp_dir:
             root = Path(temp_dir)
@@ -75,9 +127,7 @@ def main() -> int:
                 stderr=subprocess.PIPE, text=True, env=env,
             )
             try:
-                assert parent.stdout is not None
-                if parent.stdout.readline().strip() != "READY":
-                    raise AssertionError("zombie fixture did not become ready")
+                wait_until_ready(parent)
                 require_prefix(run(args.helper, "inspect", env), "ABORT LOCKED 0 ")
                 require_prefix(run(args.helper, "try-lock", env), "FAIL_STOP ABORT ")
             finally:
@@ -124,10 +174,69 @@ def main() -> int:
             json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
             encoding="utf-8",
         )
-        (root / "flock.bin").write_bytes(bytes(4096))
+        flock = root / "flock.bin"
+        flock.write_bytes(bytes(4096))
+        before = hashlib.sha256(flock.read_bytes()).digest()
+        env = dict(os.environ)
+        env["HAKO_CONFIG_PATH"] = str(config)
+        env["HAKO_TEST_FLOCK_PATH"] = str(flock)
+        require_prefix(run(args.helper, "inspect", env), "UNKNOWN UNLOCKED 0 ")
+        require_prefix(run(args.helper, "try-lock", env), "FAIL_STOP UNKNOWN ")
+        if hashlib.sha256(flock.read_bytes()).digest() != before:
+            raise AssertionError("legacy flock was modified by the new runtime")
+
+        old_writer = subprocess.Popen(
+            [args.helper, "legacy-hold"], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, env=env,
+        )
+        new_writer = None
+        try:
+            wait_until_ready(old_writer)
+            new_writer = subprocess.Popen(
+                [args.helper, "try-lock"], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=env,
+            )
+            time.sleep(0.2)
+            if new_writer.poll() is not None:
+                raise AssertionError("new writer bypassed the legacy OS lock")
+            old_writer.kill()
+            old_writer.wait(timeout=5)
+            stdout, stderr = new_writer.communicate(timeout=5)
+            if new_writer.returncode != 0 or not stdout.startswith("FAIL_STOP UNKNOWN "):
+                raise AssertionError(
+                    "mixed writer was not rejected as UNKNOWN: "
+                    f"rc={new_writer.returncode}, stdout={stdout!r}, stderr={stderr!r}"
+                )
+            if hashlib.sha256(flock.read_bytes()).digest() != before:
+                raise AssertionError("mixed writer test modified legacy evidence")
+        finally:
+            if old_writer.poll() is None:
+                old_writer.kill()
+                old_writer.wait(timeout=5)
+            if new_writer is not None and new_writer.poll() is None:
+                new_writer.kill()
+                new_writer.wait(timeout=5)
+
+    with tempfile.TemporaryDirectory(prefix="hako-master-lock-incomplete-") as temp_dir:
+        root = Path(temp_dir)
+        config = root / "cpp_core_config.json"
+        config.write_text(
+            json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
+            encoding="utf-8",
+        )
+        flock = root / "flock.bin"
+        flock.write_bytes(bytes(4096 + 48))
+        before = hashlib.sha256(flock.read_bytes()).digest()
         env = dict(os.environ)
         env["HAKO_CONFIG_PATH"] = str(config)
         require_prefix(run(args.helper, "inspect", env), "UNKNOWN UNLOCKED 0 ")
+        started = time.monotonic()
+        require_prefix(run(args.helper, "try-lock", env), "FAIL_STOP UNKNOWN ")
+        elapsed = time.monotonic() - started
+        if elapsed >= 4:
+            raise AssertionError(f"incomplete metadata rejection was unbounded: {elapsed:.3f}s")
+        if hashlib.sha256(flock.read_bytes()).digest() != before:
+            raise AssertionError("incomplete flock was modified by the new runtime")
 
     with tempfile.TemporaryDirectory(prefix="hako-master-lock-concurrent-") as temp_dir:
         root = Path(temp_dir)
