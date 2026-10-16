@@ -41,8 +41,12 @@ transfers ownership or edits the master counter.
 `flock::create()` initializes counters and metadata when it atomically creates
 a new `flock.bin`. When the master creates shared-memory area zero against an
 existing v1 file, asset semaphore counters are cleared only if inspection is
-`OK` and `UNLOCKED`. Creating secondary shared-memory areas, or observing
-any other health/state, does not clear them. A legacy counter-only file is
+`OK` and `UNLOCKED` (checked and written under the same OS file lock), so
+counts left by a previous session do not carry over. Creating secondary
+shared-memory areas, or observing any other health/state, does not clear them.
+`UNLOCKED` means nobody holds the master lock at that instant, not that no
+session runs: starting a second master while a session is live remains
+unsupported, as before (master initialization also resets the master data). A legacy counter-only file is
 retained for diagnosis and classified as `UNKNOWN` rather than silently
 upgraded.
 
@@ -65,9 +69,9 @@ translate it to that API's established failure representation.
 | no `flock.bin` | `UNKNOWN` until a runtime creates it | a new v1 file is atomically created and initialized | normal start |
 | valid v1, unlocked | `OK` | acquires normally | normal start/join |
 | valid v1, live owner | `OK`, `LOCKED` | waits; bounded callers may time out | wait or stop the live session |
-| valid v1, confirmed dead or PID-reused owner | `ABORT` | typed `ABORT` error | preserve evidence, stop all processes, then use the explicit Core PRO recovery procedure |
+| valid v1, confirmed dead or PID-reused owner | `ABORT` | typed `ABORT` error | preserve evidence, stop all processes, then `hako-cmd recover` (Core PRO), then start |
 | valid v1, owner cannot be inspected | `UNKNOWN` | retry without writes inside the caller's bounded wait, then time out as `UNKNOWN` | fix OS permissions/diagnostics; do not recover while liveness is unknown |
-| legacy counter-only file | `UNKNOWN` | typed `UNKNOWN` error | use the offline migration procedure below |
+| legacy counter-only file | `UNKNOWN` | typed `UNKNOWN` error | upgrade procedure below (`hako-cmd recover` clears it) |
 | incomplete/corrupt/unsupported metadata | `UNKNOWN` | typed `UNKNOWN` error | preserve evidence and investigate; do not rewrite automatically |
 | OS file lock is busy during `check` | `UNKNOWN` immediately | waits only according to the caller's bounded-wait policy | retry diagnosis; do not infer owner death |
 
@@ -77,19 +81,28 @@ without maintaining v1 owner metadata. Therefore a new process refuses its
 first logical master-lock operation with typed `UNKNOWN`, even after the old
 writer releases the OS byte-range lock. It never appends metadata to that file.
 
-### Offline migration from a legacy file
+### Upgrade and recovery procedure
 
-1. Stop the launcher, master, assets, external clients, and every old-version
-   process that can use the configured `core_mmap_path`.
-2. Verify at the OS level that none of those processes remains. If quiescence
-   cannot be proved, stop and keep the files for diagnosis.
-3. Preserve a copy of `flock.bin` and the related `mmap-0x*.bin` files.
-4. Use the explicit, offline Core PRO migration/recovery operation documented
-   by hakoniwa-core-pro issue #99. Core CPP intentionally provides no deletion,
-   counter reset, or automatic format conversion command.
-5. Start one new-version master. It creates a fresh v1 file; only after that
-   succeeds may new-version assets and external clients join.
+Mixed Core versions on one `core_mmap_path` are unsupported. Upgrade, and
+recover after an `ABORT`, in this order:
 
-An otherwise normal stop does not make a legacy file safe to rewrite by
-itself: process quiescence is a separate operator assertion. Old and new
-writers must never overlap.
+1. Stop the launcher, master, assets, external clients, and every process
+   (old or new version) that can use the configured `core_mmap_path`. Verify
+   at the OS level that none remains; if that cannot be shown, stop here and
+   keep the files for diagnosis.
+2. Install all Core components of one version together (Core CPP, Core PRO
+   and the bindings built against them).
+3. Run `hako-cmd recover`. It is part of Hakoniwa Core PRO (the sample
+   `hako-cmd` in this repository has no `recover` subcommand). It removes the
+   known runtime files (`mmap-0x*.bin`, `pro_init.lock`, `pdu_init.lock`,
+   then `flock.bin` last), the legacy counter-only `flock.bin` included, and
+   refuses while a recorded master or asset process is alive. Keep a copy of
+   the files first if you need them for diagnosis.
+4. Start one master. It creates a fresh v1 `flock.bin`; only after that
+   succeeds may assets and external clients join.
+
+Core CPP itself deletes, resets or converts nothing outside a clean master
+start: a legacy file is never rewritten or upgraded in place, and process
+quiescence is the operator's assertion in step 1. Hakoniwa Business Pack runs
+steps 3–4 for its Foundation runtime directory at the Workspace entry (it
+moves the previous Core's files aside when no Launcher session runs).
