@@ -32,14 +32,19 @@ counter from 0 to 1, then clears the owner and commits `UNLOCKED`.
 
 If a process exits during either transition, the OS releases its file lock but
 the transition/owner evidence remains. A dead or PID-reused owner is `ABORT`.
-Invalid, incomplete, legacy, or unverifiable metadata is `UNKNOWN`. Neither
-condition transfers ownership or edits the counter; recovery is an explicit
-operator action in `hako-cmd`.
+Invalid, incomplete, or legacy metadata is `UNKNOWN` and fails immediately.
+If only the owner identity cannot be inspected, a runtime caller with a
+bounded wait scope retries without writing and eventually times out as
+`UNKNOWN`; `check` reports `UNKNOWN` immediately. No `UNKNOWN` condition
+transfers ownership or edits the master counter.
 
-`flock::create()` initializes counters and metadata only when it atomically
-creates a new `flock.bin`. Opening an existing file never resets a live master
-counter. A legacy counter-only file is retained for diagnosis and classified as
-`UNKNOWN` rather than silently upgraded.
+`flock::create()` initializes counters and metadata when it atomically creates
+a new `flock.bin`. When the master creates shared-memory area zero against an
+existing v1 file, asset semaphore counters are cleared only if inspection is
+`OK` and `UNLOCKED`. Creating secondary shared-memory areas, or observing
+any other health/state, does not clear them. A legacy counter-only file is
+retained for diagnosis and classified as `UNKNOWN` rather than silently
+upgraded.
 
 The creator sizes a new file for the complete versioned record before
 initializing it. A simultaneous opener that observes this new-format size but
@@ -61,7 +66,7 @@ translate it to that API's established failure representation.
 | valid v1, unlocked | `OK` | acquires normally | normal start/join |
 | valid v1, live owner | `OK`, `LOCKED` | waits; bounded callers may time out | wait or stop the live session |
 | valid v1, confirmed dead or PID-reused owner | `ABORT` | typed `ABORT` error | preserve evidence, stop all processes, then use the explicit Core PRO recovery procedure |
-| valid v1, owner cannot be inspected | `UNKNOWN` | typed `UNKNOWN` error | fix OS permissions/diagnostics; do not recover or continue |
+| valid v1, owner cannot be inspected | `UNKNOWN` | retry without writes inside the caller's bounded wait, then time out as `UNKNOWN` | fix OS permissions/diagnostics; do not recover while liveness is unknown |
 | legacy counter-only file | `UNKNOWN` | typed `UNKNOWN` error | use the offline migration procedure below |
 | incomplete/corrupt/unsupported metadata | `UNKNOWN` | typed `UNKNOWN` error | preserve evidence and investigate; do not rewrite automatically |
 | OS file lock is busy during `check` | `UNKNOWN` immediately | waits only according to the caller's bounded-wait policy | retry diagnosis; do not infer owner death |

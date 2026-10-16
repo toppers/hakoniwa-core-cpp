@@ -1,10 +1,13 @@
 #include "utils/hako_share/hako_master_lock.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/impl/hako_flock.hpp"
+#include "utils/hako_share/impl/hako_flock_wait.hpp"
 
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -14,14 +17,16 @@
 
 namespace {
 
-void print_inspection()
+void print_inspection(bool force_wait = false)
 {
     using namespace hako::utils::sem::flock;
-    const MasterLockInspection value = inspect_master_lock(500, false);
+    const MasterLockInspection value = inspect_master_lock(500, force_wait);
     std::cout << master_lock_health_name(value.health) << " "
               << master_lock_state_name(value.state) << " "
               << value.counter << " " << value.owner_pid << " "
-              << value.generation << " " << value.reason << std::endl;
+              << value.generation << " " << value.reason << " cause="
+              << master_lock_unknown_cause_name(value.unknown_cause)
+              << std::endl;
 }
 
 } // namespace
@@ -41,7 +46,7 @@ int main(int argc, char **argv)
         if (hako::utils::sem::flock::create(sem_id) < 0) {
             return 3;
         }
-        print_inspection();
+        print_inspection(true);
         return 0;
     }
     if (mode == "legacy-hold") {
@@ -94,18 +99,36 @@ int main(int argc, char **argv)
         }
     }
 #endif
-    if (mode == "try-lock") {
+    if (mode == "try-lock" || mode == "try-lock-bounded") {
         if (hako::utils::sem::flock::create(sem_id) < 0) {
             return 3;
         }
+        volatile sig_atomic_t interrupted = 0;
+        std::unique_ptr<HakoFlockWaitScope> wait_scope;
+        if (mode == "try-lock-bounded") {
+            wait_scope = std::make_unique<HakoFlockWaitScope>(
+                HakoFlockWaitOptions{80, &interrupted});
+        }
         try {
             hako::utils::sem::flock::master_lock(sem_id);
+        }
+        catch (const HakoFlockWaitError& error) {
+            const auto inspection =
+                hako::utils::sem::flock::inspect_master_lock(0, false);
+            std::cout << "WAIT_STOP "
+                      << hako::utils::sem::flock::master_lock_unknown_cause_name(
+                             inspection.unknown_cause)
+                      << " " << error.what() << std::endl;
+            return 0;
         }
         catch (const hako::utils::sem::flock::MasterLockStateError& error) {
             std::cout << "FAIL_STOP "
                       << hako::utils::sem::flock::master_lock_health_name(
                              error.health())
-                      << " " << error.what() << std::endl;
+                      << " " << error.what() << " cause="
+                      << hako::utils::sem::flock::master_lock_unknown_cause_name(
+                             error.unknown_cause())
+                      << std::endl;
             return 0;
         }
         return 8;

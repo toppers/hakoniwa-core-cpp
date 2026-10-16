@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import struct
 import subprocess
 import tempfile
 import time
@@ -47,6 +48,22 @@ def wait_until_ready(process: subprocess.Popen[str]) -> None:
     raise AssertionError("holder did not become ready")
 
 
+def metadata_bytes(
+    *, state: int, owner_pid: int, owner_start_token: int, generation: int
+) -> bytes:
+    values = (
+        0x484B464C, 1, 48, state, 0, owner_pid,
+        owner_start_token, generation, 0,
+    )
+    data = bytearray(struct.pack("<IHHIIqQQQ", *values))
+    digest = 1469598103934665603
+    for value in data:
+        digest ^= value
+        digest = (digest * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    struct.pack_into("<Q", data, 40, digest)
+    return bytes(data)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--helper", required=True)
@@ -71,7 +88,14 @@ def main() -> int:
         crashed = run(args.helper, "crash", env)
         if crashed.returncode != 0:
             raise AssertionError(f"crash fixture failed: {crashed.stderr!r}")
-        require_prefix(run(args.helper, "inspect", env), "ABORT LOCKED 0 ")
+        inspection = run(args.helper, "inspect", env)
+        require_prefix(inspection, "ABORT LOCKED 0 ")
+        if "cause=NONE" not in inspection.stdout:
+            raise AssertionError(f"ABORT cause was not reported: {inspection.stdout!r}")
+        stopped = run(args.helper, "try-lock", env)
+        require_prefix(stopped, "FAIL_STOP ABORT ")
+        if "hako-cmd recover" not in stopped.stdout:
+            raise AssertionError(f"recovery guidance is missing: {stopped.stdout!r}")
 
     with tempfile.TemporaryDirectory(prefix="hako-master-lock-waiter-") as temp_dir:
         root = Path(temp_dir)
@@ -180,8 +204,14 @@ def main() -> int:
         env = dict(os.environ)
         env["HAKO_CONFIG_PATH"] = str(config)
         env["HAKO_TEST_FLOCK_PATH"] = str(flock)
-        require_prefix(run(args.helper, "inspect", env), "UNKNOWN UNLOCKED 0 ")
-        require_prefix(run(args.helper, "try-lock", env), "FAIL_STOP UNKNOWN ")
+        inspection = run(args.helper, "inspect", env)
+        require_prefix(inspection, "UNKNOWN UNLOCKED 0 ")
+        if "cause=FORMAT" not in inspection.stdout:
+            raise AssertionError(f"legacy cause was not reported: {inspection.stdout!r}")
+        stopped = run(args.helper, "try-lock", env)
+        require_prefix(stopped, "FAIL_STOP UNKNOWN ")
+        if "hako-cmd recover" not in stopped.stdout or "cause=FORMAT" not in stopped.stdout:
+            raise AssertionError(f"legacy recovery guidance is missing: {stopped.stdout!r}")
         if hashlib.sha256(flock.read_bytes()).digest() != before:
             raise AssertionError("legacy flock was modified by the new runtime")
 
@@ -237,6 +267,38 @@ def main() -> int:
             raise AssertionError(f"incomplete metadata rejection was unbounded: {elapsed:.3f}s")
         if hashlib.sha256(flock.read_bytes()).digest() != before:
             raise AssertionError("incomplete flock was modified by the new runtime")
+
+    with tempfile.TemporaryDirectory(prefix="hako-master-lock-identity-") as temp_dir:
+        root = Path(temp_dir)
+        config = root / "cpp_core_config.json"
+        config.write_text(
+            json.dumps({"shm_type": "mmap", "core_mmap_path": str(root)}),
+            encoding="utf-8",
+        )
+        flock = root / "flock.bin"
+        counters = bytearray(4096)
+        struct.pack_into("<i", counters, 0, 0)
+        flock.write_bytes(
+            counters
+            + metadata_bytes(
+                state=2, owner_pid=0, owner_start_token=1, generation=7
+            )
+        )
+        before = hashlib.sha256(flock.read_bytes()).digest()
+        env = dict(os.environ)
+        env["HAKO_CONFIG_PATH"] = str(config)
+        inspection = run(args.helper, "inspect", env)
+        require_prefix(inspection, "UNKNOWN LOCKED 0 0 7 ")
+        if "cause=IDENTITY" not in inspection.stdout:
+            raise AssertionError(f"identity cause was not reported: {inspection.stdout!r}")
+        started = time.monotonic()
+        stopped = run(args.helper, "try-lock-bounded", env)
+        elapsed = time.monotonic() - started
+        require_prefix(stopped, "WAIT_STOP IDENTITY ")
+        if elapsed < 0.05 or elapsed >= 4:
+            raise AssertionError(f"identity retry was not bounded: {elapsed:.3f}s")
+        if hashlib.sha256(flock.read_bytes()).digest() != before:
+            raise AssertionError("identity retry modified flock evidence")
 
     with tempfile.TemporaryDirectory(prefix="hako-master-lock-concurrent-") as temp_dir:
         root = Path(temp_dir)

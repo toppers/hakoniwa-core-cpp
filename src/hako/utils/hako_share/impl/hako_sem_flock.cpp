@@ -5,6 +5,7 @@
 #include "utils/hako_share/impl/hako_process_identity.hpp"
 #include "utils/hako_config_loader.hpp"
 #include "utils/hako_assert.hpp"
+#include "config/hako_config.hpp"
 
 #include <chrono>
 #include <cstdio>
@@ -110,25 +111,34 @@ hako::utils::sem::flock::MasterLockInspection inspect_locked(
     using namespace hako::utils::sem::flock;
     MasterLockInspection result{};
     if (!hako_flock_read_bytes(handle, 0, &result.counter, sizeof(result.counter))) {
+        result.unknown_cause = MasterLockUnknownCause::Corrupt;
         result.reason = "master lock counter cannot be read";
         return result;
     }
     MasterLockMetadataV1 metadata{};
     if (!read_metadata(handle, &metadata)) {
+        result.unknown_cause = MasterLockUnknownCause::Format;
         result.reason = "master lock owner metadata is missing (legacy flock.bin)";
         return result;
     }
-    if (metadata.magic != MASTER_LOCK_MAGIC ||
-        metadata.version != MASTER_LOCK_VERSION ||
+    if (metadata.magic != MASTER_LOCK_MAGIC) {
+        result.unknown_cause = MasterLockUnknownCause::Format;
+        result.reason = "master lock owner metadata magic is incompatible";
+        return result;
+    }
+    if (metadata.version != MASTER_LOCK_VERSION ||
         metadata.size != sizeof(metadata)) {
+        result.unknown_cause = MasterLockUnknownCause::Unsupported;
         result.reason = "master lock owner metadata version is incompatible";
         return result;
     }
     if (metadata.checksum != metadata_checksum(metadata)) {
+        result.unknown_cause = MasterLockUnknownCause::Corrupt;
         result.reason = "master lock owner metadata checksum is invalid";
         return result;
     }
     if (metadata.state > static_cast<uint32_t>(MasterLockState::Releasing)) {
+        result.unknown_cause = MasterLockUnknownCause::Corrupt;
         result.reason = "master lock owner metadata state is invalid";
         return result;
     }
@@ -144,6 +154,7 @@ hako::utils::sem::flock::MasterLockInspection inspect_locked(
             result.reason = "master lock is unlocked";
         }
         else {
+            result.unknown_cause = MasterLockUnknownCause::Corrupt;
             result.reason = "unlocked master lock metadata is inconsistent";
         }
         return result;
@@ -156,6 +167,7 @@ hako::utils::sem::flock::MasterLockInspection inspect_locked(
         return result;
     }
     if (owner_status == HakoProcessIdentityStatus::Unknown) {
+        result.unknown_cause = MasterLockUnknownCause::Identity;
         result.reason = "master lock owner identity cannot be verified";
         return result;
     }
@@ -164,21 +176,61 @@ hako::utils::sem::flock::MasterLockInspection inspect_locked(
         result.reason = "master lock is held by a live process";
         return result;
     }
+    result.unknown_cause = MasterLockUnknownCause::Corrupt;
     result.reason = "master lock transition was left incomplete";
     return result;
+}
+
+void release_on_error(HakoFlockObjectType *handle) noexcept
+{
+    try {
+        hako_flock_release(handle);
+    }
+    catch (const std::exception& error) {
+        std::fprintf(stderr,
+            "HAKONIWA_FAIL_STOP secondary file-lock release failure: %s\n",
+            error.what());
+    }
+    catch (...) {
+        std::fprintf(stderr,
+            "HAKONIWA_FAIL_STOP secondary file-lock release failure\n");
+    }
+}
+
+std::string actionable_reason(
+    const hako::utils::sem::flock::MasterLockInspection& inspection)
+{
+    using namespace hako::utils::sem::flock;
+    std::string message = inspection.reason;
+    if (inspection.health == MasterLockHealth::Abort ||
+        inspection.unknown_cause == MasterLockUnknownCause::Format ||
+        inspection.unknown_cause == MasterLockUnknownCause::Corrupt ||
+        inspection.unknown_cause == MasterLockUnknownCause::Unsupported) {
+        message += "; stop every Hakoniwa process, install one Core version, "
+                   "then run 'hako-cmd recover' before restarting";
+    }
+    else if (inspection.unknown_cause == MasterLockUnknownCause::Identity) {
+        message += "; fix process-inspection permissions or retry with a bounded "
+                   "wait; do not recover while owner liveness is unknown";
+    }
+    return message;
 }
 
 [[noreturn]] void throw_lock_health(
     const hako::utils::sem::flock::MasterLockInspection& inspection)
 {
     using namespace hako::utils::sem::flock;
+    const std::string message = actionable_reason(inspection);
     std::fprintf(stderr,
-        "HAKONIWA_FAIL_STOP health=%s owner_pid=%lld generation=%llu reason=%s\n",
+        "HAKONIWA_FAIL_STOP health=%s unknown_cause=%s owner_pid=%lld "
+        "generation=%llu reason=%s\n",
         master_lock_health_name(inspection.health),
+        master_lock_unknown_cause_name(inspection.unknown_cause),
         static_cast<long long>(inspection.owner_pid),
         static_cast<unsigned long long>(inspection.generation),
-        inspection.reason.c_str());
-    throw MasterLockStateError(inspection.health, inspection.reason);
+        message.c_str());
+    throw MasterLockStateError(
+        inspection.health, message, inspection.unknown_cause);
 }
 
 void initialize_new_flock(HakoFlockObjectType *handle)
@@ -189,18 +241,20 @@ void initialize_new_flock(HakoFlockObjectType *handle)
         if (!hako_flock_write_bytes(
                 handle, static_cast<uint64_t>(i) * sizeof(value),
                 &value, sizeof(value))) {
-            hako_flock_release(handle);
+            release_on_error(handle);
             throw hako::utils::sem::flock::MasterLockStateError(
                 hako::utils::sem::flock::MasterLockHealth::Unknown,
-                "failed to initialize semaphore counters");
+                "failed to initialize semaphore counters",
+                hako::utils::sem::flock::MasterLockUnknownCause::System);
         }
     }
     MasterLockMetadataV1 metadata = new_metadata();
     if (!write_metadata(handle, &metadata)) {
-        hako_flock_release(handle);
+        release_on_error(handle);
         throw hako::utils::sem::flock::MasterLockStateError(
             hako::utils::sem::flock::MasterLockHealth::Unknown,
-            "failed to initialize master lock owner metadata");
+            "failed to initialize master lock owner metadata",
+            hako::utils::sem::flock::MasterLockUnknownCause::System);
     }
     hako_flock_release(handle);
 }
@@ -236,6 +290,34 @@ void wait_for_existing_flock_initialization(HakoFlockObjectType *handle)
     }
     // A legacy or interrupted flock.bin must remain untouched.  Its first
     // logical lock operation will report UNKNOWN through inspect_locked().
+}
+
+void reset_asset_semaphores_for_clean_master_start(
+    HakoFlockObjectType *handle)
+{
+    hako_flock_acquire(handle);
+    const auto inspection = inspect_locked(handle);
+    if (inspection.health ==
+            hako::utils::sem::flock::MasterLockHealth::Ok &&
+        inspection.state ==
+            hako::utils::sem::flock::MasterLockState::Unlocked &&
+        inspection.counter == 1) {
+        for (int index = HAKO_SEM_INX_ASSETS;
+             index < HAKO_CONFIG_MAX_SEM; ++index) {
+            const int value = 0;
+            if (!hako_flock_write_bytes(
+                    handle, static_cast<uint64_t>(index) * sizeof(value),
+                    &value, sizeof(value))) {
+                release_on_error(handle);
+                hako::utils::sem::flock::MasterLockInspection failure{};
+                failure.unknown_cause =
+                    hako::utils::sem::flock::MasterLockUnknownCause::System;
+                failure.reason = "failed to reset asset semaphore counters";
+                throw_lock_health(failure);
+            }
+        }
+    }
+    hako_flock_release(handle);
 }
 
 void semaphore_down(int index)
@@ -297,6 +379,21 @@ const char* hako::utils::sem::flock::master_lock_state_name(
     return "INVALID";
 }
 
+const char* hako::utils::sem::flock::master_lock_unknown_cause_name(
+    MasterLockUnknownCause cause)
+{
+    switch (cause) {
+    case MasterLockUnknownCause::None: return "NONE";
+    case MasterLockUnknownCause::Identity: return "IDENTITY";
+    case MasterLockUnknownCause::Format: return "FORMAT";
+    case MasterLockUnknownCause::Corrupt: return "CORRUPT";
+    case MasterLockUnknownCause::Unsupported: return "UNSUPPORTED";
+    case MasterLockUnknownCause::Contention: return "CONTENTION";
+    case MasterLockUnknownCause::System: return "SYSTEM";
+    }
+    return "SYSTEM";
+}
+
 hako::utils::sem::flock::MasterLockInspection
 hako::utils::sem::flock::inspect_master_lock(uint32_t timeout_ms, bool force_wait)
 {
@@ -311,6 +408,7 @@ hako::utils::sem::flock::inspect_master_lock(uint32_t timeout_ms, bool force_wai
     }
     HakoFlockObjectType *handle = hako_flock_open(filepath);
     if (handle == nullptr) {
+        result.unknown_cause = MasterLockUnknownCause::System;
         result.reason = "flock.bin cannot be opened";
         return result;
     }
@@ -322,6 +420,9 @@ hako::utils::sem::flock::inspect_master_lock(uint32_t timeout_ms, bool force_wai
         else {
             const int lock_result = hako_flock_try_acquire(handle);
             if (lock_result != 0) {
+                result.unknown_cause = lock_result > 0
+                    ? MasterLockUnknownCause::Contention
+                    : MasterLockUnknownCause::System;
                 result.reason = lock_result > 0
                     ? "OS file lock is busy"
                     : "OS file lock inspection failed";
@@ -333,6 +434,7 @@ hako::utils::sem::flock::inspect_master_lock(uint32_t timeout_ms, bool force_wai
         hako_flock_release(handle);
     }
     catch (const std::exception& e) {
+        result.unknown_cause = MasterLockUnknownCause::Contention;
         result.reason = e.what();
     }
     hako_flock_destroy(handle);
@@ -360,6 +462,9 @@ int32_t hako::utils::sem::flock::create(int32_t key)
         // window for a legacy/corrupt session.  The wait is bounded and does
         // not modify legacy files.
         wait_for_existing_flock_initialization(flock_handle);
+        if (key == HAKO_SHARED_MEMORY_ID_0) {
+            reset_asset_semaphores_for_clean_master_start(flock_handle);
+        }
     }
     return key;
 }
@@ -391,6 +496,7 @@ void hako::utils::sem::flock::master_lock(int32_t sem_id)
     HakoProcessIdentity owner{};
     if (!hako_current_process_identity(&owner)) {
         MasterLockInspection unknown{};
+        unknown.unknown_cause = MasterLockUnknownCause::Identity;
         unknown.reason = "current process identity cannot be determined";
         throw_lock_health(unknown);
     }
@@ -402,14 +508,24 @@ void hako::utils::sem::flock::master_lock(int32_t sem_id)
         hako_flock_acquire(flock_handle);
         MasterLockInspection inspection = inspect_locked(flock_handle);
         if (inspection.health != MasterLockHealth::Ok) {
-            hako_flock_release(flock_handle);
+            release_on_error(flock_handle);
+            if (inspection.health == MasterLockHealth::Unknown &&
+                inspection.unknown_cause == MasterLockUnknownCause::Identity &&
+                hako_flock_wait_is_enabled()) {
+                local_lock.unlock();
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                hako_flock_wait_checkpoint(started_at_ms);
+                local_lock.lock();
+                continue;
+            }
             throw_lock_health(inspection);
         }
         if (inspection.state == MasterLockState::Unlocked && inspection.counter == 1) {
             MasterLockMetadataV1 metadata{};
             if (!read_metadata(flock_handle, &metadata)) {
-                hako_flock_release(flock_handle);
+                release_on_error(flock_handle);
                 inspection.health = MasterLockHealth::Unknown;
+                inspection.unknown_cause = MasterLockUnknownCause::Corrupt;
                 inspection.reason = "master lock metadata disappeared during acquisition";
                 throw_lock_health(inspection);
             }
@@ -418,15 +534,16 @@ void hako::utils::sem::flock::master_lock(int32_t sem_id)
             metadata.owner_start_token = owner.start_token;
             ++metadata.generation;
             if (!write_metadata(flock_handle, &metadata)) {
-                hako_flock_release(flock_handle);
+                release_on_error(flock_handle);
                 inspection.health = MasterLockHealth::Unknown;
+                inspection.unknown_cause = MasterLockUnknownCause::System;
                 inspection.reason = "failed to record master lock acquisition";
                 throw_lock_health(inspection);
             }
             const int locked_counter = 0;
             if (!hako_flock_write_bytes(
                     flock_handle, 0, &locked_counter, sizeof(locked_counter))) {
-                hako_flock_release(flock_handle);
+                release_on_error(flock_handle);
                 inspection.health = MasterLockHealth::Abort;
                 inspection.owner_pid = owner.pid;
                 inspection.generation = metadata.generation;
@@ -435,7 +552,7 @@ void hako::utils::sem::flock::master_lock(int32_t sem_id)
             }
             metadata.state = static_cast<uint32_t>(MasterLockState::Locked);
             if (!write_metadata(flock_handle, &metadata)) {
-                hako_flock_release(flock_handle);
+                release_on_error(flock_handle);
                 inspection.health = MasterLockHealth::Abort;
                 inspection.owner_pid = owner.pid;
                 inspection.generation = metadata.generation;
@@ -459,6 +576,7 @@ void hako::utils::sem::flock::master_unlock(int32_t sem_id)
     HakoProcessIdentity owner{};
     if (!hako_current_process_identity(&owner)) {
         MasterLockInspection unknown{};
+        unknown.unknown_cause = MasterLockUnknownCause::Identity;
         unknown.reason = "current process identity cannot be determined";
         throw_lock_health(unknown);
     }
@@ -470,23 +588,25 @@ void hako::utils::sem::flock::master_unlock(int32_t sem_id)
         inspection.state != MasterLockState::Locked ||
         inspection.owner_pid != owner.pid ||
         inspection.owner_start_token != owner.start_token) {
-        hako_flock_release(flock_handle);
+        release_on_error(flock_handle);
         if (inspection.health == MasterLockHealth::Ok) {
             inspection.health = MasterLockHealth::Unknown;
+            inspection.unknown_cause = MasterLockUnknownCause::Identity;
             inspection.reason = "master unlock attempted by a non-owner process";
         }
         throw_lock_health(inspection);
     }
     MasterLockMetadataV1 metadata{};
     if (!read_metadata(flock_handle, &metadata)) {
-        hako_flock_release(flock_handle);
+        release_on_error(flock_handle);
         inspection.health = MasterLockHealth::Unknown;
+        inspection.unknown_cause = MasterLockUnknownCause::Corrupt;
         inspection.reason = "master lock metadata disappeared during release";
         throw_lock_health(inspection);
     }
     metadata.state = static_cast<uint32_t>(MasterLockState::Releasing);
     if (!write_metadata(flock_handle, &metadata)) {
-        hako_flock_release(flock_handle);
+        release_on_error(flock_handle);
         inspection.health = MasterLockHealth::Abort;
         inspection.reason = "failed to record master lock release";
         throw_lock_health(inspection);
@@ -494,7 +614,7 @@ void hako::utils::sem::flock::master_unlock(int32_t sem_id)
     const int unlocked_counter = 1;
     if (!hako_flock_write_bytes(
             flock_handle, 0, &unlocked_counter, sizeof(unlocked_counter))) {
-        hako_flock_release(flock_handle);
+        release_on_error(flock_handle);
         inspection.health = MasterLockHealth::Abort;
         inspection.reason = "master lock counter release failed";
         throw_lock_health(inspection);
@@ -503,7 +623,7 @@ void hako::utils::sem::flock::master_unlock(int32_t sem_id)
     metadata.owner_pid = 0;
     metadata.owner_start_token = 0;
     if (!write_metadata(flock_handle, &metadata)) {
-        hako_flock_release(flock_handle);
+        release_on_error(flock_handle);
         inspection.health = MasterLockHealth::Abort;
         inspection.reason = "master lock release metadata was not committed";
         throw_lock_health(inspection);
