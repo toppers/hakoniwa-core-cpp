@@ -90,6 +90,32 @@ int  win_create_rw(const char* filepath, WinHandleType *whp)
     return 0;
 }
 
+int win_create_new_rw(const char* filepath, WinHandleType *whp)
+{
+    wchar_t wfile[4096];
+    win_filepath(filepath, wfile);
+    whp->handle = CreateFileW(
+        wfile,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    if (whp->handle == INVALID_HANDLE_VALUE) {
+        return GetLastError() == ERROR_FILE_EXISTS ||
+               GetLastError() == ERROR_ALREADY_EXISTS ? 1 : -1;
+    }
+    LARGE_INTEGER size;
+    size.QuadPart = static_cast<LONGLONG>(whp->size);
+    if (SetFilePointerEx(whp->handle, size, nullptr, FILE_BEGIN) == FALSE ||
+        SetEndOfFile(whp->handle) == FALSE) {
+        win_close(whp);
+        return -1;
+    }
+    return 0;
+}
+
 void* win_mmap(WinHandleType *whp)
 {
     if (whp == NULL) {
@@ -131,7 +157,7 @@ void win_close(WinHandleType *whp)
     return;
 }
 
-void win_flock_acquire(WinHandleType *whp)
+int win_flock_acquire(WinHandleType *whp)
 {
     OVERLAPPED overlap;
     memset((void*)&overlap, 0, sizeof(OVERLAPPED));
@@ -153,7 +179,9 @@ void win_flock_acquire(WinHandleType *whp)
     if (ret == FALSE) {
         DWORD err = GetLastError();
         printf("win_flock_acquire() error:%lu\n", err);
+        return -1;
     }
+    return 0;
 }
 
 int win_flock_try_acquire(WinHandleType *whp)

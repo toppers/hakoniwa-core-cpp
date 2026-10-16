@@ -15,11 +15,13 @@ typedef struct {
 
 extern int  win_open_rw(const char* filepath, WinHandleType *whp);
 extern int  win_create_rw(const char* filepath, WinHandleType *whp);
+/* Like win_create_rw, but fails instead of truncating when the file exists. */
+extern int  win_create_new_rw(const char* filepath, WinHandleType *whp);
 extern void *win_mmap(WinHandleType *whp);
 extern void win_munmap(WinHandleType *whp);
 extern void win_close(WinHandleType *whp);
 
-extern void win_flock_acquire(WinHandleType *whp);
+extern int win_flock_acquire(WinHandleType *whp);
 /* Returns 0 when acquired, 1 when busy, and -1 on another error. */
 extern int win_flock_try_acquire(WinHandleType *whp);
 extern void win_flock_release(WinHandleType *whp);

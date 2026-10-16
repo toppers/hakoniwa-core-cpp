@@ -11,6 +11,7 @@
 #include "utils/hako_share/impl/hako_flock.hpp"
 #include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
+#include "utils/hako_share/hako_master_lock.hpp"
 
 namespace {
 
@@ -190,4 +191,42 @@ TEST(HakoFlockWaitTest, TimesOutWhileLogicalMasterLockIsUnavailable)
         hako::utils::sem::flock::master_unlock(sem_id);
     }
     hako::utils::sem::flock::destroy(sem_id);
+}
+
+TEST(HakoFlockWaitTest, MasterLockMetadataTracksNormalAcquireAndRelease)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    constexpr int32_t sem_id = 0x00FF;
+    ASSERT_GE(create(sem_id), 0);
+    auto value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Unlocked);
+
+    master_lock(sem_id);
+    value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Locked);
+    EXPECT_GT(value.owner_pid, 0);
+
+    master_unlock(sem_id);
+    value = inspect_master_lock(100, false);
+    EXPECT_EQ(value.health, MasterLockHealth::Ok);
+    EXPECT_EQ(value.state, MasterLockState::Unlocked);
+    EXPECT_EQ(value.owner_pid, 0);
+    destroy(sem_id);
+}
+
+TEST(HakoFlockWaitTest, ReopeningFlockDoesNotResetAssetSemaphore)
+{
+    using namespace hako::utils::sem::flock;
+    MmapConfigDirectory config;
+    constexpr int32_t sem_id = 0x00FF;
+    ASSERT_GE(create(sem_id), 0);
+    asset_up(sem_id, 0);
+    ASSERT_GE(create(sem_id), 0);
+    volatile sig_atomic_t interrupted = 0;
+    HakoFlockWaitScope scope({100, &interrupted});
+    EXPECT_NO_THROW(asset_down(sem_id, 0));
+    destroy(sem_id);
 }
