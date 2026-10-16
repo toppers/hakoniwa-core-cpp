@@ -7,13 +7,16 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
+#include <chrono>
 
 
 int main(int argc, char *argv[])
 {
     // Ensure tests use mmap with a writable path.
+    const auto unique = std::to_string(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
     const std::filesystem::path base_dir =
-        std::filesystem::temp_directory_path() / "hakoniwa";
+        std::filesystem::temp_directory_path() / ("hakoniwa-test-" + unique);
     const std::filesystem::path mmap_dir = base_dir / "mmap";
     std::filesystem::create_directories(mmap_dir);
 

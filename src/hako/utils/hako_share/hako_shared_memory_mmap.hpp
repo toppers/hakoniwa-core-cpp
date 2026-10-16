@@ -3,6 +3,7 @@
 
 #include "types/hako_types.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/hako_runtime_lifecycle.hpp"
 #include <map>
 
 namespace hako::utils {
@@ -22,8 +23,10 @@ namespace hako::utils {
         virtual int32_t get_semid(int32_t key) override;
 
     private:
+        void ensure_lifecycle(bool create_session);
         void* load_memory_shmid(int32_t key, int32_t shmid, size_t size);
         std::map<int32_t, SharedMemoryInfoType> shared_memory_map_;
+        std::unique_ptr<lifecycle::RuntimeParticipantLease> lifecycle_;
     };
 }
 

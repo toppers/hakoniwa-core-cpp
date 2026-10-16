@@ -6,7 +6,7 @@
 #include <map>
 
 #define HAKO_SHM_MAGIC 0x48414B4FU
-#define HAKO_SHM_LAYOUT_VERSION 2
+#define HAKO_SHM_LAYOUT_VERSION 3
 
 namespace hako::utils {
 
@@ -16,6 +16,7 @@ namespace hako::utils {
         int32_t     shm_id;
         int32_t     sem_id;
         uint64_t    data_size;
+        uint64_t    lifecycle_generation;
         char        data[4];
     } SharedMemoryMetaDataType;
     

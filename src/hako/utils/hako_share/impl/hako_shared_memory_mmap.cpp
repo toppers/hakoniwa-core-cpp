@@ -7,6 +7,16 @@
 #include <sys/stat.h>
 
 namespace {
+static std::string get_core_mmap_path()
+{
+    HakoConfigType config;
+    hako_config_load(config);
+    if (config.param == nullptr) {
+        return ".";
+    }
+    return config.param["core_mmap_path"];
+}
+
 static std::string get_core_filepath(int32_t key)
 {
     char buf[4096];
@@ -35,8 +45,19 @@ static hako::utils::SharedMemoryInfoType* find_memory_info(
 }
 }
 
+void hako::utils::HakoSharedMemoryMmap::ensure_lifecycle(bool create_session)
+{
+    if (this->lifecycle_ != nullptr && this->lifecycle_->joined()) {
+        return;
+    }
+    this->lifecycle_ =
+        std::make_unique<hako::utils::lifecycle::RuntimeParticipantLease>();
+    this->lifecycle_->join(get_core_mmap_path(), create_session);
+}
+
 int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, size_t size)
 {
+    this->ensure_lifecycle(key == HAKO_SHARED_MEMORY_ID_0);
     if (size > std::numeric_limits<size_t>::max() - sizeof(SharedMemoryMetaDataType)) {
         printf("ERROR: create_memory() size overflow key=%d size=%zu\n", key, size);
         return -1;
@@ -72,6 +93,7 @@ int32_t hako::utils::HakoSharedMemoryMmap::create_memory(int32_t key, size_t siz
         return -1;
     }
     metap->data_size = size;
+    metap->lifecycle_generation = this->lifecycle_->generation();
     std::cout
         << "INFO: HakoSharedMemoryMmap::create_memory()"
         << " key=" << key
@@ -103,6 +125,7 @@ void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t 
         return nullptr;
     }
     if (this->shared_memory_map_.count(key) == 0) {
+        this->ensure_lifecycle(false);
         char buf[4096];
         HakoConfigType config;
         hako_config_load(config);
@@ -149,7 +172,13 @@ void* hako::utils::HakoSharedMemoryMmap::load_memory_shmid(int32_t key, int32_t 
                 << std::endl;
             hako_mmap_close(mmap_obj);
             return nullptr;
-        }    
+        }
+        if (metap->lifecycle_generation != this->lifecycle_->generation()) {
+            std::cout << "ERROR: shared memory lifecycle generation mismatch key="
+                      << key << std::endl;
+            hako_mmap_close(mmap_obj);
+            return nullptr;
+        }
         std::cout
             << "INFO: HakoSharedMemoryMmap::load_memory()"
             << " key=" << key
