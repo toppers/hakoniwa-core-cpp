@@ -1,4 +1,5 @@
 #include "hako_simevent_impl.hpp"
+#include "hako_simevent_states.hpp"
 #include "hako_log.hpp"
 #include "core/rpc/hako_internal_rpc.hpp"
 
@@ -106,6 +107,20 @@ bool hako::HakoSimulationEventController::do_event_handling(HakoSimulationStateT
 {
     bool is_changed = false;
     std::vector<HakoAssetIdType> error_assets;
+    /*
+     * Only the transitional states have work to do (the assets' feedback, timeouts).
+     * The conductor calls this in a tight loop, and the master lock is a file lock
+     * (#62): taking it on every iteration in Running or Stopped made hako-cmd start
+     * wait seconds for it on Windows (#73). Read the state without the lock first;
+     * a stale read is caught on the next call, and a transition re-reads it under
+     * the lock.
+     */
+    HakoSimulationStateType peek = this->master_data_->ref_state_nolock();
+    if (!sim_event_needs_handling(peek)) {
+        prev = peek;
+        next = peek;
+        return false;
+    }
     this->master_data_->lock();
     prev = this->master_data_->ref_state_nolock();
     this->do_event_handling_nolock(&error_assets);
