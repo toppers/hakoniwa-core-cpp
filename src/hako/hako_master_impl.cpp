@@ -37,9 +37,9 @@ bool hako::HakoMasterControllerImpl::execute()
     }
     auto prev_world_time = this->theWorld_->get_world_time_usec();
 
-    std::vector<HakoTimeType> asset_times;
-    this->master_data_->get_asset_times(asset_times);
-    auto world_time = this->theWorld_->time_begins_to_move(asset_times);
+    this->asset_times_.clear();  // keeps its capacity
+    this->master_data_->get_asset_times(this->asset_times_);
+    auto world_time = this->theWorld_->time_begins_to_move(this->asset_times_);
     if (world_time > prev_world_time) {
         auto& timeset = this->master_data_->ref_time_nolock();
         timeset.current = world_time;
