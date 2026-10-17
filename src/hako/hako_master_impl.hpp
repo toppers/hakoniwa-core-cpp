@@ -25,6 +25,9 @@ namespace hako {
         std::shared_ptr<hako::core::simulation::time::TheWorld> theWorld_;
         std::shared_ptr<data::HakoMasterData> master_data_;
         std::shared_ptr<hako::HakoSimulationEventController> sim_event_;
+        // The conductor calls execute() in a tight loop: one buffer for the assets' times,
+        // so a call allocates nothing (it allocated and freed a vector on every call).
+        std::vector<HakoTimeType> asset_times_;
     };
 }
 
