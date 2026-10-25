@@ -18,7 +18,10 @@ HakoMmapObjectType* hako_mmap_create(std::string &filepath, size_t size)
     handle->mmap_obj.mmap_addr = nullptr;
     handle->mmap_obj.obj = nullptr;
     int ret = win_open_rw(filepath.c_str(), &handle->fd);
-    if (ret < 0) {
+    if ((ret < 0) || (handle->fd.size < size)) {
+        if (ret >= 0) {
+            win_close(&handle->fd);
+        }
         handle->fd.size = size;
         ret = win_create_rw(filepath.c_str(), &handle->fd);
         if (ret < 0) {
